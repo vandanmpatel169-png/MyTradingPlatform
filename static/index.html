@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TradePro by Vandan</title>
+    <!-- KLineChart CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/klinecharts/dist/klinecharts.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #0F0F0F;
+            color: #d1d4dc;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .top-bar {
+            padding: 10px 20px;
+            background-color: #0F0F0F;
+            border-bottom: 1px solid #2A2A2A;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+            height: 45px;
+        }
+
+        .top-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: #2962ff;
+        }
+
+        select {
+            background-color: #2A2A2A;
+            color: #d1d4dc;
+            border: 1px solid #363c4e;
+            padding: 6px 10px;
+            border-radius: 4px;
+            outline: none;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .timeframes {
+            display: flex;
+            gap: 5px;
+            background: #2A2A2A;
+            padding: 3px;
+            border-radius: 6px;
+        }
+
+        .tf-btn {
+            background: transparent;
+            color: #d1d4dc;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .tf-btn.active,
+        .tf-btn:hover {
+            background: #2962ff;
+            color: white;
+        }
+
+        .top-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .action-btn {
+            background: #2A2A2A;
+            color: #d1d4dc;
+            border: 1px solid #363c4e;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .action-btn:hover {
+            background: #363c4e;
+        }
+
+        /* Dropdown CSS */
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: #0F0F0F;
+            min-width: 160px;
+            box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.5);
+            z-index: 100;
+            border: 1px solid #363c4e;
+            border-radius: 4px;
+            top: 100%;
+            margin-top: 5px;
+            right: 0;
+        }
+
+        .dropdown-content a {
+            color: #d1d4dc;
+            padding: 10px 16px;
+            text-decoration: none;
+            display: block;
+            font-size: 0.85rem;
+        }
+
+        .dropdown-content a:hover {
+            background-color: #2A2A2A;
+            color: #ffffff;
+        }
+
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+
+        .main-content {
+            display: flex;
+            flex: 1;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .left-toolbar {
+            width: 65px;
+            background-color: #0F0F0F;
+            border-right: 1px solid #2A2A2A;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 15px;
+            gap: 15px;
+            flex-shrink: 0;
+            overflow-y: auto;
+        }
+
+        .toolbar-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            gap: 10px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #2A2A2A;
+        }
+
+        .toolbar-label {
+            font-size: 0.65rem;
+            color: #787b86;
+            text-transform: uppercase;
+        }
+
+        .tool-btn {
+            width: 45px;
+            height: 45px;
+            border-radius: 6px;
+            background: #2A2A2A;
+            border: 1px solid transparent;
+            color: #d1d4dc;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .tool-btn:hover {
+            background: #363c4e;
+        }
+
+        .tool-btn.active {
+            background: rgba(41, 98, 255, 0.15);
+            color: #2962ff;
+            border-color: #2962ff;
+        }
+
+        .chart-wrapper {
+            flex: 1;
+            position: relative;
+            background: #0F0F0F;
+        }
+
+        #chart {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Chart Legend */
+        .chart-legend {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            z-index: 5;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            pointer-events: none;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            background: transparent;
+            padding: 0;
+            border-radius: 6px;
+            pointer-events: auto;
+            gap: 12px;
+            font-size: 0.85rem;
+            margin-top: 15px;
+        }
+
+        .legend-title {
+            font-weight: 600;
+            color: #d1d4dc;
+        }
+
+        .legend-params {
+            color: #2962ff;
+        }
+
+        .legend-icons {
+            display: flex;
+            gap: 8px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .legend-item:hover .legend-icons {
+            opacity: 1;
+        }
+
+        .legend-icon {
+            cursor: pointer;
+            color: #787b86;
+            font-size: 0.9rem;
+        }
+
+        .legend-icon:hover {
+            color: #ffffff;
+        }
+
+        /* Spinner Loading */
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+            z-index: 10;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(41, 98, 255, 0.2);
+            border-top: 4px solid #2962ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Modals */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+            background-color: #0F0F0F;
+            margin: 15% auto;
+            padding: 25px;
+            border: 1px solid #363c4e;
+            border-radius: 8px;
+            width: 350px;
+            color: #d1d4dc;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content h3 {
+            margin-top: 0;
+        }
+
+        .setting-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #2A2A2A;
+        }
+
+        .setting-row input {
+            background: #0F0F0F;
+            border: 1px solid #363c4e;
+            color: #fff;
+            padding: 5px 8px;
+            width: 80px;
+            border-radius: 4px;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn-primary {
+            background: #2962ff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .btn-secondary {
+            background: #363c4e;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        /* Custom Go To Modal Styles */
+        #goto-modal .modal-content {
+            width: 320px;
+            padding: 0;
+            background-color: #0F0F0F;
+            border: 1px solid #2A2A2A;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .goto-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px 0;
+        }
+
+        .goto-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        .goto-close {
+            cursor: pointer;
+            color: #787b86;
+            font-size: 1.2rem;
+        }
+
+        .goto-close:hover {
+            color: #d1d4dc;
+        }
+
+        .goto-tabs {
+            display: flex;
+            gap: 20px;
+            padding: 15px 20px 0;
+            border-bottom: 1px solid #2A2A2A;
+        }
+
+        .goto-tab {
+            padding-bottom: 8px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            color: #787b86;
+        }
+
+        .goto-tab.active-white {
+            color: #ffffff;
+            border-bottom: 2px solid #ffffff;
+        }
+
+        .goto-inputs {
+            display: flex;
+            gap: 10px;
+            padding: 20px;
+        }
+
+        .goto-input-wrapper {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            background: #0F0F0F;
+            border: 1px solid #363c4e;
+            border-radius: 4px;
+            padding: 6px 10px;
+            gap: 8px;
+        }
+
+        .goto-input-wrapper.active {
+            border-color: #2962ff;
+        }
+
+        .goto-input-wrapper input {
+            background: transparent;
+            border: none;
+            color: #d1d4dc;
+            outline: none;
+            width: 100%;
+            font-size: 0.9rem;
+        }
+
+        .goto-icon {
+            color: #787b86;
+            font-size: 0.9rem;
+        }
+
+        .goto-calendar {
+            padding: 0 20px 20px;
+        }
+
+        .cal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .cal-nav {
+            cursor: pointer;
+            color: #787b86;
+            font-size: 1rem;
+            padding: 0 5px;
+        }
+
+        .cal-nav:hover {
+            color: #d1d4dc;
+        }
+
+        .cal-month-year {
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .cal-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            text-align: center;
+        }
+
+        .cal-weekday {
+            color: #787b86;
+            font-size: 0.75rem;
+            margin-bottom: 5px;
+        }
+
+        .cal-day {
+            padding: 6px 0;
+            font-size: 0.85rem;
+            cursor: pointer;
+            border-radius: 4px;
+            color: #d1d4dc;
+        }
+
+        .cal-day:hover:not(.empty) {
+            background: #2A2A2A;
+        }
+
+        .cal-day.selected {
+            background: #ffffff;
+            color: #000000;
+            font-weight: 500;
+        }
+
+        .cal-day.empty {
+            cursor: default;
+        }
+
+        .goto-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            padding: 15px 20px;
+            border-top: 1px solid #2A2A2A;
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: #ffffff;
+            border: 1px solid #ffffff;
+            padding: 8px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: background 0.2s;
+        }
+
+        .btn-outline:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-solid {
+            background: #ffffff;
+            color: #000000;
+            border: 1px solid #ffffff;
+            padding: 8px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Top Navigation -->
+    <div class="top-bar">
+        <div class="top-left">
+            <div class="logo">TradePro by Vandan</div>
+            <select id="symbol-select" onchange="handleSymbolChange()">
+                <option value="NSE:NIFTY50-INDEX">Nifty 50</option>
+                <option value="NSE:NIFTYBANK-INDEX">Bank Nifty</option>
+                <option value="NSE:RELIANCE-EQ">Reliance</option>
+                <option value="NSE:HDFCBANK-EQ">HDFC Bank</option>
+            </select>
+
+            <button id="login-btn" class="action-btn" style="background: #26a69a; color: white; border: none;"
+                onclick="loginToBroker()">Login Broker</button>
+
+            <div class="timeframes" id="tf-container">
+                <button class="tf-btn active" data-val="1m" onclick="handleTimeframe('1m')">1m</button>
+                <button class="tf-btn" data-val="5m" onclick="handleTimeframe('5m')">5m</button>
+                <button class="tf-btn" data-val="15m" onclick="handleTimeframe('15m')">15m</button>
+                <button class="tf-btn" data-val="1h" onclick="handleTimeframe('1h')">1h</button>
+                <button class="tf-btn" data-val="1d" onclick="handleTimeframe('1d')">1D</button>
+            </div>
+        </div>
+        <div class="top-actions">
+            <div class="dropdown">
+                <button class="action-btn">Indicators ▾</button>
+                <div class="dropdown-content">
+                    <a href="#" onclick="toggleSwingBreak(); return false;">Swing Break</a>
+                </div>
+            </div>
+            <button class="action-btn" onclick="openGoToModal()" title="Alt + G">📅 Go To</button>
+            <button class="action-btn" onclick="resetChartZoom()">Reset Chart</button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Left Toolbar -->
+        <div class="left-toolbar">
+            <div class="toolbar-group">
+                <button class="tool-btn" onclick="enableDrawing('segment')" title="Trendline">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                        <line x1="4" y1="20" x2="20" y2="4"></line>
+                    </svg>
+                </button>
+                <button class="tool-btn" onclick="enableDrawing('brush')" title="Brush">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                        <path d="M21 21v-4a2 2 0 0 0-2-2h-4l-5-5-2 2 5 5v4a2 2 0 0 0 2 2h4z"></path>
+                    </svg>
+                </button>
+                <button class="tool-btn" onclick="enableDrawing('measurement')" title="Measurement Tool">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                        <rect x="3" y="10" width="18" height="4" rx="1"></rect>
+                        <line x1="7" y1="10" x2="7" y2="14"></line>
+                        <line x1="12" y1="10" x2="12" y2="14"></line>
+                        <line x1="17" y1="10" x2="17" y2="14"></line>
+                    </svg>
+                </button>
+                <button class="tool-btn"
+                    onclick="console.log('Price Range tool activated'); enableDrawing('priceRange')"
+                    title="Price Range">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                        <path d="M12 2v20M8 6h8M8 18h8"></path>
+                    </svg>
+                </button>
+                <button class="tool-btn" onclick="clearDrawings()" title="Clear All Drawings" style="color: #ef5350;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Chart Area -->
+        <div class="chart-wrapper">
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+            </div>
+            <div id="chart-legend" class="chart-legend"></div>
+            <div id="chart"></div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-content">
+            <h3 id="modal-title">Indicator Settings</h3>
+            <div id="settings-body"></div>
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="closeSettingsModal()">Cancel</button>
+                <button class="btn-primary" onclick="saveSettings()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Go To Modal -->
+    <div id="goto-modal" class="modal">
+        <div class="modal-content">
+            <div class="goto-header">
+                <h3>Go to</h3>
+                <span class="goto-close" onclick="closeGoToModal()">×</span>
+            </div>
+            <div class="goto-tabs">
+                <div class="goto-tab active-white">Date</div>
+                <div class="goto-tab">Custom range</div>
+            </div>
+            <div class="goto-inputs">
+                <div class="goto-input-wrapper active" id="wrap-date">
+                    <span class="goto-icon">📅</span>
+                    <input type="text" id="goto-date-val" value=""
+                        onfocus="document.getElementById('wrap-date').classList.add('active'); document.getElementById('wrap-time').classList.remove('active');">
+                </div>
+                <div class="goto-input-wrapper" id="wrap-time">
+                    <span class="goto-icon">⏰</span>
+                    <input type="text" id="goto-time-val" value=""
+                        onfocus="document.getElementById('wrap-time').classList.add('active'); document.getElementById('wrap-date').classList.remove('active');">
+                </div>
+            </div>
+            <div class="goto-calendar">
+                <div class="cal-header">
+                    <span class="cal-nav" onclick="changeMonth(-1)">❮</span>
+                    <span class="cal-month-year" id="cal-title"></span>
+                    <span class="cal-nav" onclick="changeMonth(1)">❯</span>
+                </div>
+                <div class="cal-grid" id="cal-grid"></div>
+            </div>
+            <div class="goto-footer">
+                <button class="btn-outline" onclick="closeGoToModal()">Cancel</button>
+                <button class="btn-solid" onclick="submitGoToDate()">Go to</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let currentSymbol = 'NSE:NIFTY50-INDEX';
+        let currentTimeframe = '1m';
+        let currentChartData = [];
+        let currentSettingsTarget = null;
+
+        function showLoader() { document.getElementById('loading').style.display = 'block'; }
+        function hideLoader() { document.getElementById('loading').style.display = 'none'; }
+
+        // Tracking
+        const activeIndicators = { SwingBreak: true };
+        const visibilityState = { SwingBreak: true };
+        const swingBreakParams = { leftBars: 2, rightBars: 5, extendBars: 10 };
+
+        klinecharts.registerOverlay({
+            name: 'brush',
+            totalStep: 999,
+            needDefaultPointFigure: false,
+            needDefaultXAxisFigure: false,
+            needDefaultYAxisFigure: false,
+            createPointFigures: ({ coordinates }) => {
+                if (coordinates.length < 2) return [];
+                return [{ type: 'line', attrs: { coordinates }, styles: { style: 'solid', color: '#2962ff', size: 2 } }];
+            }
+        });
+
+        klinecharts.registerOverlay({
+            name: 'measurement',
+            totalStep: 3,
+            needDefaultPointFigure: true,
+            needDefaultXAxisFigure: false,
+            needDefaultYAxisFigure: true,
+            createPointFigures: ({ coordinates, overlay }) => {
+                if (coordinates.length < 2) return [];
+                const start = coordinates[0], end = coordinates[1];
+                const startPoint = overlay.points[0], endPoint = overlay.points[1];
+
+                const figures = [];
+                figures.push({ type: 'line', attrs: { coordinates: [start, end] }, styles: { style: 'dashed', color: '#2962ff', size: 2 } });
+
+                const minX = Math.min(start.x, end.x), maxX = Math.max(start.x, end.x);
+                const minY = Math.min(start.y, end.y), maxY = Math.max(start.y, end.y);
+
+                figures.push({
+                    type: 'polygon',
+                    attrs: { coordinates: [{ x: minX, y: minY }, { x: maxX, y: minY }, { x: maxX, y: maxY }, { x: minX, y: maxY }] },
+                    styles: { style: 'fill', color: 'rgba(41, 98, 255, 0.1)' }
+                });
+
+                const priceDiff = endPoint.value - startPoint.value;
+                const percentDiff = ((priceDiff / startPoint.value) * 100).toFixed(2);
+                const barDiff = Math.abs(endPoint.dataIndex - startPoint.dataIndex);
+
+                const color = priceDiff >= 0 ? '#26a69a' : '#ef5350';
+                const centerX = (start.x + end.x) / 2;
+                const centerY = (start.y + end.y) / 2;
+
+                figures.push({
+                    type: 'text', ignoreEvent: true,
+                    attrs: { x: centerX, y: centerY, text: `${priceDiff.toFixed(2)} (${percentDiff}%) | ${barDiff} Bars`, align: 'center', baseline: 'middle' },
+                    styles: { color: '#ffffff', size: 12, paddingLeft: 8, paddingRight: 8, paddingTop: 6, paddingBottom: 6, backgroundColor: color, borderRadius: 4 }
+                });
+
+                return figures;
+            }
+        });
+
+        klinecharts.registerOverlay({
+            name: 'priceRange',
+            totalStep: 3,
+            needDefaultPointFigure: true,
+            needDefaultXAxisFigure: false,
+            needDefaultYAxisFigure: true,
+            createPointFigures: ({ coordinates, overlay }) => {
+                if (coordinates.length < 2) return [];
+                const start = coordinates[0], end = coordinates[1];
+                const startPoint = overlay.points[0], endPoint = overlay.points[1];
+
+                const figures = [];
+                const minX = Math.min(start.x, end.x), maxX = Math.max(start.x, end.x);
+                const minY = Math.min(start.y, end.y), maxY = Math.max(start.y, end.y);
+
+                figures.push({
+                    type: 'polygon',
+                    attrs: { coordinates: [{ x: minX, y: minY }, { x: maxX, y: minY }, { x: maxX, y: maxY }, { x: minX, y: maxY }] },
+                    styles: { style: 'fill', color: 'rgba(41, 98, 255, 0.1)' }
+                });
+
+                figures.push({ type: 'line', attrs: { coordinates: [{ x: minX, y: minY }, { x: maxX, y: minY }] }, styles: { style: 'solid', color: '#2962ff', size: 1 } });
+                figures.push({ type: 'line', attrs: { coordinates: [{ x: minX, y: maxY }, { x: maxX, y: maxY }] }, styles: { style: 'solid', color: '#2962ff', size: 1 } });
+
+                const priceDiff = endPoint.value - startPoint.value;
+                const percentDiff = ((priceDiff / startPoint.value) * 100).toFixed(2);
+
+                const color = priceDiff >= 0 ? '#26a69a' : '#ef5350';
+                const centerX = (start.x + end.x) / 2;
+                const centerY = (start.y + end.y) / 2;
+
+                figures.push({
+                    type: 'text', ignoreEvent: true,
+                    attrs: { x: centerX, y: centerY, text: `${priceDiff.toFixed(2)} (${percentDiff}%)`, align: 'center', baseline: 'middle' },
+                    styles: { color: '#ffffff', size: 12, paddingLeft: 8, paddingRight: 8, paddingTop: 6, paddingBottom: 6, backgroundColor: color, borderRadius: 4 }
+                });
+
+                return figures;
+            }
+        });
+
+        klinecharts.registerOverlay({
+            name: 'swingBreak',
+            needDefaultPointFigure: false,
+            needDefaultXAxisFigure: false,
+            needDefaultYAxisFigure: false,
+            createPointFigures: ({ overlay, coordinates }) => {
+                if (coordinates.length < 2) return [];
+                const isHigh = overlay.extendData === 'high';
+                return [{
+                    type: 'line', attrs: { coordinates },
+                    styles: { style: 'solid', color: isHigh ? '#ef5350' : '#26a69a', size: 2 }
+                }];
+            }
+        });
+
+        let chart;
+
+        // Legend Rendering
+        function renderLegend() {
+            const container = document.getElementById('chart-legend');
+            container.innerHTML = '';
+
+            ['SwingBreak'].forEach(name => {
+                if (activeIndicators[name]) {
+                    const paramsStr = `${swingBreakParams.leftBars} ${swingBreakParams.rightBars} ${swingBreakParams.extendBars}`;
+                    const div = document.createElement('div');
+                    div.className = 'legend-item';
+
+                    const eyeIcon = visibilityState[name] ? '👁️' : '🕶️';
+
+                    div.innerHTML = `
+                        <span class="legend-title">${name}</span>
+                        <span class="legend-params">${paramsStr}</span>
+                        <div class="legend-icons">
+                            <span class="legend-icon" onclick="toggleVisibility('${name}')" title="Toggle Visibility">${eyeIcon}</span>
+                            <span class="legend-icon" onclick="openSettingsModal('${name}')" title="Settings">⚙️</span>
+                            <span class="legend-icon" onclick="removeActiveItem('${name}')" title="Remove">🗑️</span>
+                        </div>
+                    `;
+                    container.appendChild(div);
+                }
+            });
+        }
+
+        function toggleVisibility(name) {
+            visibilityState[name] = !visibilityState[name];
+            if (name === 'SwingBreak') {
+                chart.overrideOverlay({ name: 'swingBreak', visible: visibilityState[name] });
+            }
+            renderLegend();
+        }
+
+        function removeActiveItem(name) {
+            if (name === 'SwingBreak') {
+                chart.removeOverlay({ name: 'swingBreak' });
+            }
+            activeIndicators[name] = false;
+            renderLegend();
+        }
+
+        function openSettingsModal(name) {
+            currentSettingsTarget = name;
+            document.getElementById('modal-title').textContent = `${name} Settings`;
+            const body = document.getElementById('settings-body');
+            body.innerHTML = '';
+
+            if (name === 'SwingBreak') {
+                const fields = ['leftBars', 'rightBars', 'extendBars'];
+                fields.forEach(f => {
+                    body.innerHTML += `
+                        <div class="setting-row">
+                            <span>${f}</span>
+                            <input type="number" id="setting-input-${f}" value="${swingBreakParams[f]}">
+                        </div>
+                    `;
+                });
+            }
+            document.getElementById('settings-modal').style.display = 'block';
+        }
+
+        function closeSettingsModal() { document.getElementById('settings-modal').style.display = 'none'; }
+
+        function saveSettings() {
+            const name = currentSettingsTarget;
+            if (name === 'SwingBreak') {
+                swingBreakParams.leftBars = Number(document.getElementById('setting-input-leftBars').value);
+                swingBreakParams.rightBars = Number(document.getElementById('setting-input-rightBars').value);
+                swingBreakParams.extendBars = Number(document.getElementById('setting-input-extendBars').value);
+                drawSwingBreak();
+            }
+            closeSettingsModal();
+            renderLegend();
+        }
+
+        function drawSwingBreak() {
+            chart.removeOverlay({ name: 'swingBreak' });
+            const dataList = chart.getDataList();
+            if (!dataList || dataList.length === 0) return;
+            const { leftBars, rightBars, extendBars } = swingBreakParams;
+
+            for (let i = leftBars; i < dataList.length - rightBars; i++) {
+                let isHigh = true, isLow = true;
+                for (let j = 1; j <= leftBars; j++) {
+                    if (dataList[i].high <= dataList[i - j].high) isHigh = false;
+                    if (dataList[i].low >= dataList[i - j].low) isLow = false;
+                }
+                for (let j = 1; j <= rightBars; j++) {
+                    if (dataList[i].high <= dataList[i + j].high) isHigh = false;
+                    if (dataList[i].low >= dataList[i + j].low) isLow = false;
+                }
+                if (isHigh || isLow) {
+                    chart.createOverlay({
+                        name: 'swingBreak',
+                        extendData: isHigh ? 'high' : 'low',
+                        visible: visibilityState['SwingBreak'],
+                        lock: true,
+                        points: [
+                            { dataIndex: i, value: isHigh ? dataList[i].high : dataList[i].low },
+                            { dataIndex: i + extendBars, value: isHigh ? dataList[i].high : dataList[i].low }
+                        ]
+                    });
+                }
+            }
+        }
+
+        function toggleSwingBreak() {
+            if (activeIndicators['SwingBreak']) {
+                removeActiveItem('SwingBreak');
+            } else {
+                activeIndicators['SwingBreak'] = true;
+                visibilityState['SwingBreak'] = true;
+                drawSwingBreak();
+                renderLegend();
+            }
+        }
+
+        function enableDrawing(name) { chart.createOverlay(name); }
+        function clearDrawings() {
+            chart.removeOverlay();
+            if (activeIndicators['SwingBreak']) {
+                drawSwingBreak();
+            }
+        }
+        function resetChartZoom() {
+            if (chart.setOffsetRightDistance) chart.setOffsetRightDistance(0);
+            if (chart.setBarSpace) chart.setBarSpace(10);
+        }
+
+        function handleSymbolChange() { currentSymbol = document.getElementById('symbol-select').value; loadData(); }
+        function handleTimeframe(tf) {
+            currentTimeframe = tf;
+            document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector(`.tf-btn[data-val="${tf}"]`).classList.add('active');
+            loadData();
+        }
+
+        async function checkAuthStatus() {
+            try {
+                const response = await fetch('/api/check_auth');
+                const data = await response.json();
+                const btn = document.getElementById('login-btn');
+                if (data.is_logged_in) {
+                    btn.textContent = 'Logout Broker';
+                    btn.style.background = '#ef5350';
+                    btn.onclick = logoutBroker;
+                } else {
+                    btn.textContent = 'Login Broker';
+                    btn.style.background = '#26a69a';
+                    btn.onclick = loginToBroker;
+                }
+            } catch (err) {
+                console.error("Auth status error", err);
+            }
+        }
+
+        async function logoutBroker() {
+            try {
+                await fetch('/api/logout', { method: 'POST' });
+                window.location.reload();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function loginToBroker() {
+            window.location.href = '/login';
+        }
+
+        async function loadData() {
+            console.log("🚀 Requesting data from backend...");
+            showLoader();
+            try {
+                const response = await fetch(`/api/chart_data?symbol=${encodeURIComponent(currentSymbol)}&timeframe=${encodeURIComponent(currentTimeframe)}`);
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.detail || 'Network error');
+                }
+                const data = await response.json();
+
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                if (!data.candles || !Array.isArray(data.candles)) {
+                    throw new Error("Invalid data format received from backend: missing 'candles' array.");
+                }
+
+                const klineData = data.candles.map(candle => {
+                    // Ensure timestamp is in milliseconds
+                    const ts = candle[0].toString().length === 10 ? candle[0] * 1000 : candle[0];
+                    return {
+                        timestamp: ts,
+                        open: candle[1],
+                        high: candle[2],
+                        low: candle[3],
+                        close: candle[4],
+                        volume: candle[5]
+                    };
+                });
+                
+                console.log("Parsed KLine Data (First 2):", klineData.slice(0, 2));
+                
+                currentChartData = klineData;
+                chart.applyNewData(klineData);
+
+                if (activeIndicators['SwingBreak']) { drawSwingBreak(); }
+            } catch (error) {
+                console.error('Fetch error:', error);
+                if (error.message && (error.message.includes("login") || error.message.includes("authenticated"))) {
+                    // Fail silently or show subtle alert instead of crashing
+                    console.warn("User needs to authenticate to fetch chart data.");
+                }
+            } finally {
+                hideLoader();
+            }
+        }
+
+        // Go To Date logic
+        let gotoSelectedDate = new Date();
+        let gotoViewYear = gotoSelectedDate.getFullYear();
+        let gotoViewMonth = gotoSelectedDate.getMonth();
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+        document.addEventListener('keydown', (e) => {
+            if (e.altKey && e.key.toLowerCase() === 'g') {
+                e.preventDefault();
+                openGoToModal();
+            }
+        });
+
+        function initCalendar() {
+            const d = gotoSelectedDate;
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            document.getElementById('goto-date-val').value = `${yyyy}-${mm}-${dd}`;
+
+            const hh = String(d.getHours()).padStart(2, '0');
+            const min = String(d.getMinutes()).padStart(2, '0');
+            document.getElementById('goto-time-val').value = `${hh}:${min}`;
+
+            gotoViewYear = yyyy;
+            gotoViewMonth = d.getMonth();
+            renderCalendar();
+        }
+
+        function renderCalendar() {
+            document.getElementById('cal-title').textContent = `${monthNames[gotoViewMonth]} ${gotoViewYear}`;
+
+            const grid = document.getElementById('cal-grid');
+            grid.innerHTML = '';
+
+            ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].forEach(day => {
+                grid.innerHTML += `<div class="cal-weekday">${day}</div>`;
+            });
+
+            const firstDay = new Date(gotoViewYear, gotoViewMonth, 1).getDay();
+            const emptyDays = firstDay === 0 ? 6 : firstDay - 1;
+            const daysInMonth = new Date(gotoViewYear, gotoViewMonth + 1, 0).getDate();
+
+            for (let i = 0; i < emptyDays; i++) {
+                grid.innerHTML += `<div class="cal-day empty"></div>`;
+            }
+
+            for (let i = 1; i <= daysInMonth; i++) {
+                const isSelected = gotoSelectedDate.getFullYear() === gotoViewYear &&
+                    gotoSelectedDate.getMonth() === gotoViewMonth &&
+                    gotoSelectedDate.getDate() === i;
+
+                const cls = isSelected ? 'cal-day selected' : 'cal-day';
+                grid.innerHTML += `<div class="${cls}" onclick="selectDay(${i})">${i}</div>`;
+            }
+        }
+
+        function changeMonth(delta) {
+            gotoViewMonth += delta;
+            if (gotoViewMonth > 11) { gotoViewMonth = 0; gotoViewYear++; }
+            else if (gotoViewMonth < 0) { gotoViewMonth = 11; gotoViewYear--; }
+            renderCalendar();
+        }
+
+        function selectDay(day) {
+            gotoSelectedDate.setFullYear(gotoViewYear);
+            gotoSelectedDate.setMonth(gotoViewMonth);
+            gotoSelectedDate.setDate(day);
+
+            const mm = String(gotoViewMonth + 1).padStart(2, '0');
+            const dd = String(day).padStart(2, '0');
+            document.getElementById('goto-date-val').value = `${gotoViewYear}-${mm}-${dd}`;
+            renderCalendar();
+        }
+
+        function openGoToModal() {
+            document.getElementById('goto-modal').style.display = 'block';
+            initCalendar();
+        }
+
+        function closeGoToModal() {
+            document.getElementById('goto-modal').style.display = 'none';
+        }
+
+        function submitGoToDate() {
+            showLoader();
+            const dateStr = document.getElementById('goto-date-val').value;
+            const timeStr = document.getElementById('goto-time-val').value;
+
+            const targetTimestamp = new Date(`${dateStr}T${timeStr}:00`).getTime();
+            if (isNaN(targetTimestamp)) {
+                alert("Invalid Date/Time format");
+                hideLoader();
+                return;
+            }
+
+            const dataList = chart.getDataList();
+            if (!dataList || dataList.length === 0) {
+                hideLoader();
+                return;
+            }
+
+            let closestIndex = 0;
+            let minDiff = Infinity;
+
+            for (let i = 0; i < dataList.length; i++) {
+                const diff = Math.abs(dataList[i].timestamp - targetTimestamp);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    closestIndex = i;
+                }
+            }
+
+            if (chart.scrollToDataIndex) {
+                chart.scrollToDataIndex(closestIndex);
+            } else if (chart.scrollToTimestamp) {
+                chart.scrollToTimestamp(dataList[closestIndex].timestamp);
+            } else if (chart.setOffsetRightDistance) {
+                let barSpace = chart.getBarSpace ? chart.getBarSpace() : 10;
+                if (typeof barSpace === 'object') barSpace = barSpace.bar || 10;
+                const chartWidth = document.getElementById('chart').clientWidth;
+                const visibleBars = chartWidth / barSpace;
+                const offsetBars = dataList.length - 1 - closestIndex - (visibleBars / 2);
+                chart.setOffsetRightDistance(offsetBars * barSpace);
+            }
+
+            try {
+                if (chart.setCrosshair) {
+                    chart.setCrosshair({ paneId: 'candle_pane', dataIndex: closestIndex });
+                    setTimeout(() => chart.setCrosshair(), 2000);
+                }
+            } catch (e) { }
+
+            closeGoToModal();
+            hideLoader();
+        }
+
+        // Init Data
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM Content Loaded, setting up...');
+            
+            try {
+                console.log('Initializing chart...');
+                chart = klinecharts.init('chart');
+                chart.setStyles({
+                    layout: { backgroundColor: '#0F0F0F', textColor: '#d1d4dc' },
+                    grid: { show: true, horizontal: { color: '#2A2A2A', style: 'solid', size: 1 }, vertical: { color: '#2A2A2A', style: 'solid', size: 1 } },
+                    candle: {
+                        bar: {
+                            upColor: '#26a69a', downColor: '#ef5350', noChangeColor: '#888888',
+                            upBorderColor: '#26a69a', downBorderColor: '#ef5350', noChangeBorderColor: '#888888',
+                            upWickColor: '#26a69a', downWickColor: '#ef5350', noChangeWickColor: '#888888'
+                        },
+                        tooltip: { text: { color: '#d1d4dc' } }
+                    },
+                    xAxis: { axisLine: { color: '#2A2A2A' }, tickLine: { color: '#2A2A2A' }, tickText: { color: '#787b86' } },
+                    yAxis: { axisLine: { color: '#2A2A2A' }, tickLine: { color: '#2A2A2A' }, tickText: { color: '#787b86' } },
+                    separator: { color: '#2A2A2A', activeBackgroundColor: '#363c4e' },
+                    crosshair: { horizontal: { line: { color: '#787b86', style: 'dashed' } }, vertical: { line: { color: '#787b86', style: 'dashed' } } },
+                    indicator: {
+                        tooltip: {
+                            showRule: 'always',
+                            showType: 'standard',
+                            text: {
+                                backgroundColor: 'transparent',
+                                borderSize: 0,
+                                paddingLeft: 0,
+                                paddingRight: 0,
+                                paddingTop: 0,
+                                paddingBottom: 0,
+                                marginTop: 15
+                            }
+                        }
+                    }
+                });
+                console.log('Chart initialized successfully.');
+            } catch (e) {
+                console.error("Script crashed during chart init:", e);
+            }
+
+            document.getElementById('chart').addEventListener('mousedown', (e) => {
+                if (e.shiftKey) {
+                    enableDrawing('measurement');
+                }
+            }, true);
+            
+            window.addEventListener('resize', () => { if(chart) chart.resize(); });
+            renderLegend(); // Render the default active indicators
+            checkAuthStatus();
+            
+            // Explicit call at the end of DOMContentLoaded block
+            loadData();
+        });
+    </script>
+</body>
+
+</html>
