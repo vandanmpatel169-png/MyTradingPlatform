@@ -8,70 +8,95 @@
     <!-- KLineChart CDN -->
     <script src="https://cdn.jsdelivr.net/npm/klinecharts/dist/klinecharts.min.js"></script>
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             margin: 0;
             padding: 0;
-            background-color: #0F0F0F;
+            background-color: #131722;
             color: #d1d4dc;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             overflow: hidden;
             display: flex;
             flex-direction: column;
             height: 100vh;
+            width: 100vw;
         }
 
         .top-bar {
-            padding: 10px 20px;
-            background-color: #0F0F0F;
-            border-bottom: 1px solid #2A2A2A;
+            padding: 0 12px;
+            background-color: #181c27;
+            border-bottom: 1px solid #2a2e39;
             display: flex;
             align-items: center;
             justify-content: space-between;
             flex-shrink: 0;
-            height: 45px;
+            height: 40px;
+            min-height: 40px;
+            max-height: 40px;
+            user-select: none;
         }
 
         .top-left {
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 8px;
         }
 
         .logo {
             font-weight: 600;
-            font-size: 1.1rem;
+            font-size: 13px;
             color: #2962ff;
+            letter-spacing: -0.2px;
+            margin-right: 4px;
+            white-space: nowrap;
         }
 
         select {
-            background-color: #2A2A2A;
+            background-color: #2a2e39;
             color: #d1d4dc;
             border: 1px solid #363c4e;
-            padding: 6px 10px;
-            border-radius: 4px;
+            padding: 2px 8px;
+            border-radius: 3px;
             outline: none;
-            font-size: 0.9rem;
+            font-size: 12px;
+            height: 26px;
             cursor: pointer;
+            transition: border-color 0.15s, background-color 0.15s;
+        }
+
+        select:hover {
+            border-color: #2962ff;
+            background-color: #323746;
         }
 
         .timeframes {
             display: flex;
-            gap: 5px;
-            background: #2A2A2A;
-            padding: 3px;
-            border-radius: 6px;
+            gap: 2px;
+            background: #2a2e39;
+            padding: 2px;
+            border-radius: 4px;
+            height: 26px;
+            align-items: center;
         }
 
         .tf-btn {
             background: transparent;
             color: #d1d4dc;
             border: none;
-            padding: 6px 12px;
-            border-radius: 4px;
+            padding: 2px 7px;
+            border-radius: 3px;
             cursor: pointer;
-            font-size: 0.85rem;
+            font-size: 12px;
             font-weight: 500;
-            transition: all 0.2s;
+            height: 22px;
+            line-height: 18px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
         }
 
         .tf-btn.active,
@@ -82,23 +107,30 @@
 
         .top-actions {
             display: flex;
-            gap: 10px;
+            gap: 6px;
             align-items: center;
         }
 
         .action-btn {
-            background: #2A2A2A;
+            background: #2a2e39;
             color: #d1d4dc;
             border: 1px solid #363c4e;
-            padding: 6px 12px;
-            border-radius: 4px;
+            padding: 0 9px;
+            height: 26px;
+            border-radius: 3px;
             cursor: pointer;
-            font-size: 0.85rem;
+            font-size: 12px;
             font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s, border-color 0.15s;
+            white-space: nowrap;
         }
 
         .action-btn:hover {
             background: #363c4e;
+            color: #ffffff;
         }
 
         /* Dropdown CSS */
@@ -110,27 +142,29 @@
         .dropdown-content {
             display: none;
             position: absolute;
-            background-color: #0F0F0F;
+            background-color: #181c27;
             min-width: 160px;
-            box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.5);
+            box-shadow: 0px 8px 20px 0px rgba(0, 0, 0, 0.6);
             z-index: 100;
             border: 1px solid #363c4e;
             border-radius: 4px;
             top: 100%;
-            margin-top: 5px;
+            margin-top: 3px;
             right: 0;
+            padding: 4px 0;
         }
 
         .dropdown-content a {
             color: #d1d4dc;
-            padding: 10px 16px;
+            padding: 6px 12px;
             text-decoration: none;
             display: block;
-            font-size: 0.85rem;
+            font-size: 12px;
+            transition: background 0.15s;
         }
 
         .dropdown-content a:hover {
-            background-color: #2A2A2A;
+            background-color: #2a2e39;
             color: #ffffff;
         }
 
@@ -141,21 +175,30 @@
         .main-content {
             display: flex;
             flex: 1;
-            width: 100%;
+            width: 100vw;
+            height: calc(100vh - 40px);
             overflow: hidden;
         }
 
         .left-toolbar {
-            width: 65px;
-            background-color: #0F0F0F;
-            border-right: 1px solid #2A2A2A;
+            width: 44px;
+            min-width: 44px;
+            max-width: 44px;
+            background-color: #181c27;
+            border-right: 1px solid #2a2e39;
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding-top: 15px;
-            gap: 15px;
+            padding: 6px 0;
+            gap: 2px;
             flex-shrink: 0;
             overflow-y: auto;
+            overflow-x: hidden;
+            scrollbar-width: none;
+        }
+
+        .left-toolbar::-webkit-scrollbar {
+            display: none;
         }
 
         .toolbar-group {
@@ -163,47 +206,61 @@
             flex-direction: column;
             align-items: center;
             width: 100%;
-            gap: 10px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid #2A2A2A;
+            gap: 3px;
+            padding: 0;
+            border-bottom: none;
         }
 
         .toolbar-label {
-            font-size: 0.65rem;
-            color: #787b86;
-            text-transform: uppercase;
+            display: none !important;
+        }
+
+        .toolbar-divider {
+            width: 22px;
+            height: 1px;
+            background-color: #2a2e39;
+            margin: 4px 0;
+            flex-shrink: 0;
         }
 
         .tool-btn {
-            width: 45px;
-            height: 45px;
-            border-radius: 6px;
-            background: #2A2A2A;
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+            background: transparent;
             border: 1px solid transparent;
-            color: #d1d4dc;
+            color: #787b86;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.7rem;
-            font-weight: 600;
-            transition: all 0.2s;
+            padding: 0;
+            transition: all 0.15s;
+            flex-shrink: 0;
         }
 
         .tool-btn:hover {
-            background: #363c4e;
+            background: #2a2e39;
+            color: #d1d4dc;
         }
 
         .tool-btn.active {
-            background: rgba(41, 98, 255, 0.15);
+            background: rgba(41, 98, 255, 0.2);
             color: #2962ff;
-            border-color: #2962ff;
+            border-color: rgba(41, 98, 255, 0.5);
+        }
+
+        .tool-btn svg {
+            width: 18px;
+            height: 18px;
         }
 
         .chart-wrapper {
             flex: 1;
+            height: 100%;
             position: relative;
-            background: #0F0F0F;
+            background: #131722;
+            overflow: hidden;
         }
 
         #chart {
@@ -211,44 +268,57 @@
             height: 100%;
         }
 
-        /* Chart Legend */
+        /* Chart Legend (Floating Overlay Badge) */
         .chart-legend {
             position: absolute;
-            top: 15px;
-            left: 15px;
+            top: 8px;
+            right: 75px;
             z-index: 5;
             display: flex;
-            flex-direction: column;
+            align-items: center;
             gap: 8px;
             pointer-events: none;
         }
 
         .legend-item {
-            display: flex;
+            display: inline-flex;
             align-items: center;
-            background: transparent;
-            padding: 0;
-            border-radius: 6px;
+            background: rgba(24, 28, 39, 0.85);
+            backdrop-filter: blur(4px);
+            border: 1px solid #2a2e39;
+            padding: 2px 8px;
+            border-radius: 4px;
             pointer-events: auto;
-            gap: 12px;
-            font-size: 0.85rem;
-            margin-top: 15px;
+            gap: 8px;
+            font-size: 12px;
+            margin: 0;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+            user-select: none;
+            transition: background 0.15s, border-color 0.15s;
+        }
+
+        .legend-item:hover {
+            background: rgba(30, 35, 48, 0.95);
+            border-color: #363c4e;
         }
 
         .legend-title {
             font-weight: 600;
             color: #d1d4dc;
+            font-size: 12px;
         }
 
         .legend-params {
             color: #2962ff;
+            font-size: 11px;
+            font-weight: 500;
         }
 
         .legend-icons {
             display: flex;
-            gap: 8px;
-            opacity: 0;
-            transition: opacity 0.2s;
+            gap: 6px;
+            opacity: 0.7;
+            transition: opacity 0.15s;
         }
 
         .legend-item:hover .legend-icons {
@@ -258,11 +328,15 @@
         .legend-icon {
             cursor: pointer;
             color: #787b86;
-            font-size: 0.9rem;
+            font-size: 12px;
+            display: inline-flex;
+            align-items: center;
+            transition: transform 0.1s, color 0.1s;
         }
 
         .legend-icon:hover {
             color: #ffffff;
+            transform: scale(1.15);
         }
 
         /* Spinner Loading */
@@ -575,13 +649,29 @@
         </div>
         <div class="top-actions">
             <div class="dropdown">
+                <button class="action-btn">Type ▾</button>
+                <div class="dropdown-content">
+                    <a href="#" onclick="setChartType('candle_solid'); return false;">Candles</a>
+                    <a href="#" onclick="setChartType('ohlc'); return false;">Bars</a>
+                    <a href="#" onclick="setChartType('area'); return false;">Line</a>
+                </div>
+            </div>
+            <div class="dropdown">
                 <button class="action-btn">Indicators ▾</button>
                 <div class="dropdown-content">
-                    <a href="#" onclick="toggleSwingBreak(); return false;">Swing Break</a>
+                    <a href="#" onclick="toggleBuiltInIndicator('VOL'); return false;">Volume</a>
+                    <a href="#" onclick="toggleBuiltInIndicator('EMA'); return false;">EMA</a>
+                    <a href="#" onclick="toggleBuiltInIndicator('SMA'); return false;">SMA</a>
+                    <a href="#" onclick="toggleBuiltInIndicator('RSI'); return false;">RSI</a>
+                    <a href="#" onclick="toggleBuiltInIndicator('MACD'); return false;">MACD</a>
+                    <a href="#" onclick="toggleBuiltInIndicator('ATR'); return false;">ATR</a>
+                    <div style="border-top: 1px solid #363c4e; margin: 4px 0;"></div>
+                    <a href="#" onclick="toggleSwingBreak(); return false;">Swing Break (Custom)</a>
                 </div>
             </div>
             <button class="action-btn" onclick="openGoToModal()" title="Alt + G">📅 Go To</button>
-            <button class="action-btn" onclick="resetChartZoom()">Reset Chart</button>
+            <button class="action-btn" onclick="resetChartZoom()">Reset Zoom</button>
+            <button id="snap-btn" class="action-btn" title="Snapshot (Download Image)">📸 Snap</button>
         </div>
     </div>
 
@@ -590,33 +680,57 @@
         <!-- Left Toolbar -->
         <div class="left-toolbar">
             <div class="toolbar-group">
+                <button class="tool-btn" onclick="enableDrawing('')" title="Cursor">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2v20M2 12h20"></path>
+                    </svg>
+                </button>
+                <button class="tool-btn" onclick="enableDrawing('horizontalLine')" title="Horizontal Line">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="2" y1="12" x2="22" y2="12"></line>
+                    </svg>
+                </button>
                 <button class="tool-btn" onclick="enableDrawing('segment')" title="Trendline">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="4" y1="20" x2="20" y2="4"></line>
                     </svg>
                 </button>
                 <button class="tool-btn" onclick="enableDrawing('brush')" title="Brush">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 21v-4a2 2 0 0 0-2-2h-4l-5-5-2 2 5 5v4a2 2 0 0 0 2 2h4z"></path>
                     </svg>
                 </button>
                 <button class="tool-btn" onclick="enableDrawing('measurement')" title="Measurement Tool">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="3" y="10" width="18" height="4" rx="1"></rect>
                         <line x1="7" y1="10" x2="7" y2="14"></line>
                         <line x1="12" y1="10" x2="12" y2="14"></line>
                         <line x1="17" y1="10" x2="17" y2="14"></line>
                     </svg>
                 </button>
-                <button class="tool-btn"
-                    onclick="console.log('Price Range tool activated'); enableDrawing('priceRange')"
-                    title="Price Range">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                <button class="tool-btn" onclick="enableDrawing('priceRange')" title="Price Range">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M12 2v20M8 6h8M8 18h8"></path>
                     </svg>
                 </button>
+                <div class="toolbar-divider"></div>
+                <button class="tool-btn" onclick="enableDrawing('longPosition')" title="Long Position">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#26a69a" stroke-width="2.2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <polyline points="7 10 12 5 17 10"></polyline>
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                    </svg>
+                </button>
+                <button class="tool-btn" onclick="enableDrawing('shortPosition')" title="Short Position">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#ef5350" stroke-width="2.2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <polyline points="7 14 12 19 17 14"></polyline>
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                    </svg>
+                </button>
+                <div class="toolbar-divider"></div>
                 <button class="tool-btn" onclick="clearDrawings()" title="Clear All Drawings" style="color: #ef5350;">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="3 6 5 6 21 6"></polyline>
                         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                     </svg>
@@ -794,6 +908,94 @@
         });
 
         klinecharts.registerOverlay({
+            name: 'longPosition',
+            totalStep: 4,
+            needDefaultPointFigure: true,
+            needDefaultXAxisFigure: false,
+            needDefaultYAxisFigure: true,
+            createPointFigures: ({ coordinates, overlay, yAxis }) => {
+                if (coordinates.length === 0) return [];
+                const figures = [];
+                const p0 = coordinates[0];
+                const v0 = overlay.points[0].value;
+                let p1 = coordinates[1];
+                let v1 = overlay.points[1] ? overlay.points[1].value : null;
+                let p2 = coordinates[2];
+                let v2 = overlay.points[2] ? overlay.points[2].value : null;
+
+                const minX = p0.x;
+                const maxX = p1 ? p1.x : (p2 ? Math.max(p0.x + 100, p2.x) : p0.x + 100);
+                const entryY = p0.y;
+                let targetY = p1 ? p1.y : entryY - 80;
+                let stopY = p2 ? p2.y : entryY + 40;
+
+                if (!p1 && !p2) { v1 = v0 * 1.01; v2 = v0 * 0.995; }
+                else if (p1 && !p2) { v2 = v0 - (v1 - v0) / 2; if (yAxis) stopY = yAxis.convertToPixel(v2); }
+
+                figures.push({ type: 'polygon', attrs: { coordinates: [{ x: minX, y: entryY }, { x: maxX, y: entryY }, { x: maxX, y: targetY }, { x: minX, y: targetY }] }, styles: { style: 'fill', color: 'rgba(38, 166, 154, 0.2)' } });
+                figures.push({ type: 'polygon', attrs: { coordinates: [{ x: minX, y: entryY }, { x: maxX, y: entryY }, { x: maxX, y: stopY }, { x: minX, y: stopY }] }, styles: { style: 'fill', color: 'rgba(239, 83, 80, 0.2)' } });
+                figures.push({ type: 'line', attrs: { coordinates: [{ x: minX, y: entryY }, { x: maxX, y: entryY }] }, styles: { style: 'solid', color: '#787b86', size: 1 } });
+                figures.push({ type: 'line', attrs: { coordinates: [{ x: minX, y: targetY }, { x: maxX, y: targetY }] }, styles: { style: 'solid', color: '#26a69a', size: 1 } });
+                figures.push({ type: 'line', attrs: { coordinates: [{ x: minX, y: stopY }, { x: maxX, y: stopY }] }, styles: { style: 'solid', color: '#ef5350', size: 1 } });
+
+                if (v0 !== null && v1 !== null && v2 !== null) {
+                    const reward = v1 - v0; const risk = v0 - v2;
+                    const rr = risk > 0 ? (reward / risk).toFixed(2) : (risk < 0 ? 'Inv' : '0.00');
+                    const rewardPct = ((reward / v0) * 100).toFixed(2);
+                    const riskPct = ((risk / v0) * 100).toFixed(2);
+                    const centerX = (minX + maxX) / 2;
+                    figures.push({ type: 'text', ignoreEvent: true, attrs: { x: centerX, y: Math.min(targetY, entryY) - 10, text: `Target: ${v1.toFixed(2)} | ${reward.toFixed(2)} (${rewardPct}%)`, align: 'center', baseline: 'bottom' }, styles: { color: '#26a69a', size: 11, backgroundColor: 'rgba(19, 23, 34, 0.7)', borderRadius: 2, paddingLeft: 4, paddingRight: 4, paddingTop: 2, paddingBottom: 2 } });
+                    figures.push({ type: 'text', ignoreEvent: true, attrs: { x: centerX, y: Math.max(stopY, entryY) + 10, text: `Stop: ${v2.toFixed(2)} | ${risk.toFixed(2)} (${riskPct}%)`, align: 'center', baseline: 'top' }, styles: { color: '#ef5350', size: 11, backgroundColor: 'rgba(19, 23, 34, 0.7)', borderRadius: 2, paddingLeft: 4, paddingRight: 4, paddingTop: 2, paddingBottom: 2 } });
+                    figures.push({ type: 'text', ignoreEvent: true, attrs: { x: centerX, y: entryY, text: `R/R Ratio: ${rr}`, align: 'center', baseline: 'middle' }, styles: { color: '#d1d4dc', size: 11, backgroundColor: 'rgba(19, 23, 34, 0.7)', borderRadius: 2, paddingLeft: 4, paddingRight: 4, paddingTop: 2, paddingBottom: 2 } });
+                }
+                return figures;
+            }
+        });
+
+        klinecharts.registerOverlay({
+            name: 'shortPosition',
+            totalStep: 4,
+            needDefaultPointFigure: true,
+            needDefaultXAxisFigure: false,
+            needDefaultYAxisFigure: true,
+            createPointFigures: ({ coordinates, overlay, yAxis }) => {
+                if (coordinates.length === 0) return [];
+                const figures = [];
+                const p0 = coordinates[0]; const v0 = overlay.points[0].value;
+                let p1 = coordinates[1]; let v1 = overlay.points[1] ? overlay.points[1].value : null;
+                let p2 = coordinates[2]; let v2 = overlay.points[2] ? overlay.points[2].value : null;
+
+                const minX = p0.x;
+                const maxX = p1 ? p1.x : (p2 ? Math.max(p0.x + 100, p2.x) : p0.x + 100);
+                const entryY = p0.y;
+                let targetY = p1 ? p1.y : entryY + 80;
+                let stopY = p2 ? p2.y : entryY - 40;
+
+                if (!p1 && !p2) { v1 = v0 * 0.99; v2 = v0 * 1.005; }
+                else if (p1 && !p2) { v2 = v0 + (v0 - v1) / 2; if (yAxis) stopY = yAxis.convertToPixel(v2); }
+
+                figures.push({ type: 'polygon', attrs: { coordinates: [{ x: minX, y: entryY }, { x: maxX, y: entryY }, { x: maxX, y: targetY }, { x: minX, y: targetY }] }, styles: { style: 'fill', color: 'rgba(38, 166, 154, 0.2)' } });
+                figures.push({ type: 'polygon', attrs: { coordinates: [{ x: minX, y: entryY }, { x: maxX, y: entryY }, { x: maxX, y: stopY }, { x: minX, y: stopY }] }, styles: { style: 'fill', color: 'rgba(239, 83, 80, 0.2)' } });
+
+                figures.push({ type: 'line', attrs: { coordinates: [{ x: minX, y: entryY }, { x: maxX, y: entryY }] }, styles: { style: 'solid', color: '#787b86', size: 1 } });
+                figures.push({ type: 'line', attrs: { coordinates: [{ x: minX, y: targetY }, { x: maxX, y: targetY }] }, styles: { style: 'solid', color: '#26a69a', size: 1 } });
+                figures.push({ type: 'line', attrs: { coordinates: [{ x: minX, y: stopY }, { x: maxX, y: stopY }] }, styles: { style: 'solid', color: '#ef5350', size: 1 } });
+
+                if (v0 !== null && v1 !== null && v2 !== null) {
+                    const reward = v0 - v1; const risk = v2 - v0;
+                    const rr = risk > 0 ? (reward / risk).toFixed(2) : (risk < 0 ? 'Inv' : '0.00');
+                    const rewardPct = ((reward / v0) * 100).toFixed(2);
+                    const riskPct = ((risk / v0) * 100).toFixed(2);
+                    const centerX = (minX + maxX) / 2;
+                    figures.push({ type: 'text', ignoreEvent: true, attrs: { x: centerX, y: Math.max(targetY, entryY) + 10, text: `Target: ${v1.toFixed(2)} | ${reward.toFixed(2)} (${rewardPct}%)`, align: 'center', baseline: 'top' }, styles: { color: '#26a69a', size: 11, backgroundColor: 'rgba(19, 23, 34, 0.7)', borderRadius: 2, paddingLeft: 4, paddingRight: 4, paddingTop: 2, paddingBottom: 2 } });
+                    figures.push({ type: 'text', ignoreEvent: true, attrs: { x: centerX, y: Math.min(stopY, entryY) - 10, text: `Stop: ${v2.toFixed(2)} | ${risk.toFixed(2)} (${riskPct}%)`, align: 'center', baseline: 'bottom' }, styles: { color: '#ef5350', size: 11, backgroundColor: 'rgba(19, 23, 34, 0.7)', borderRadius: 2, paddingLeft: 4, paddingRight: 4, paddingTop: 2, paddingBottom: 2 } });
+                    figures.push({ type: 'text', ignoreEvent: true, attrs: { x: centerX, y: entryY, text: `R/R Ratio: ${rr}`, align: 'center', baseline: 'middle' }, styles: { color: '#d1d4dc', size: 11, backgroundColor: 'rgba(19, 23, 34, 0.7)', borderRadius: 2, paddingLeft: 4, paddingRight: 4, paddingTop: 2, paddingBottom: 2 } });
+                }
+                return figures;
+            }
+        });
+
+        klinecharts.registerOverlay({
             name: 'swingBreak',
             needDefaultPointFigure: false,
             needDefaultXAxisFigure: false,
@@ -929,7 +1131,31 @@
             }
         }
 
-        function enableDrawing(name) { chart.createOverlay(name); }
+        function setChartType(type) {
+            if (chart) chart.setStyles({ candle: { type: type } });
+        }
+
+        const activeNativeIndicators = {};
+        function toggleBuiltInIndicator(name) {
+            if (activeNativeIndicators[name]) {
+                chart.removeIndicator(activeNativeIndicators[name].paneId, name);
+                activeNativeIndicators[name] = false;
+            } else {
+                const isMain = ['EMA', 'SMA', 'VOL', 'BOLL', 'SAR'].includes(name);
+                const paneId = isMain ? 'candle_pane' : name;
+                chart.createIndicator(name, true, { id: paneId });
+                activeNativeIndicators[name] = { paneId: paneId };
+            }
+        }
+
+        function enableDrawing(name) {
+            if (!name) {
+                chart.overrideOverlay({ lock: true }); // A hack to drop active drawing tool
+                chart.removeOverlay({ name: 'current_drawing' }); // Dummy call to clear current drawing creation
+                return;
+            }
+            chart.createOverlay(name);
+        }
         function clearDrawings() {
             chart.removeOverlay();
             if (activeIndicators['SwingBreak']) {
@@ -995,7 +1221,7 @@
                 if (data.error) {
                     throw new Error(data.error);
                 }
-                
+
                 if (!data.candles || !Array.isArray(data.candles)) {
                     throw new Error("Invalid data format received from backend: missing 'candles' array.");
                 }
@@ -1012,9 +1238,9 @@
                         volume: candle[5]
                     };
                 });
-                
+
                 console.log("Parsed KLine Data (First 2):", klineData.slice(0, 2));
-                
+
                 currentChartData = klineData;
                 chart.applyNewData(klineData);
 
@@ -1170,13 +1396,13 @@
         // Init Data
         document.addEventListener('DOMContentLoaded', () => {
             console.log('DOM Content Loaded, setting up...');
-            
+
             try {
                 console.log('Initializing chart...');
                 chart = klinecharts.init('chart');
                 chart.setStyles({
-                    layout: { backgroundColor: '#0F0F0F', textColor: '#d1d4dc' },
-                    grid: { show: true, horizontal: { color: '#2A2A2A', style: 'solid', size: 1 }, vertical: { color: '#2A2A2A', style: 'solid', size: 1 } },
+                    layout: { backgroundColor: '#131722', textColor: '#d1d4dc' },
+                    grid: { show: true, horizontal: { color: '#1f293a', style: 'solid', size: 1 }, vertical: { color: '#1f293a', style: 'solid', size: 1 } },
                     candle: {
                         bar: {
                             upColor: '#26a69a', downColor: '#ef5350', noChangeColor: '#888888',
@@ -1185,9 +1411,9 @@
                         },
                         tooltip: { text: { color: '#d1d4dc' } }
                     },
-                    xAxis: { axisLine: { color: '#2A2A2A' }, tickLine: { color: '#2A2A2A' }, tickText: { color: '#787b86' } },
-                    yAxis: { axisLine: { color: '#2A2A2A' }, tickLine: { color: '#2A2A2A' }, tickText: { color: '#787b86' } },
-                    separator: { color: '#2A2A2A', activeBackgroundColor: '#363c4e' },
+                    xAxis: { axisLine: { color: '#2a2e39' }, tickLine: { color: '#2a2e39' }, tickText: { color: '#787b86' } },
+                    yAxis: { axisLine: { color: '#2a2e39' }, tickLine: { color: '#2a2e39' }, tickText: { color: '#787b86' } },
+                    separator: { color: '#2a2e39', activeBackgroundColor: '#363c4e' },
                     crosshair: { horizontal: { line: { color: '#787b86', style: 'dashed' } }, vertical: { line: { color: '#787b86', style: 'dashed' } } },
                     indicator: {
                         tooltip: {
@@ -1215,11 +1441,29 @@
                     enableDrawing('measurement');
                 }
             }, true);
-            
-            window.addEventListener('resize', () => { if(chart) chart.resize(); });
+
+            // Snapshot Listener
+            const snapBtn = document.getElementById('snap-btn');
+            if (snapBtn) {
+                snapBtn.addEventListener('click', () => {
+                    if (chart) {
+                        // Generate picture URL (include overlay/tooltip, format, background color)
+                        const picUrl = chart.getConvertPictureUrl(true, 'png', '#0F0F0F');
+                        // Create a temporary link to download the image
+                        const a = document.createElement('a');
+                        a.href = picUrl;
+                        a.download = 'TradePro_Chart_Snap.png';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                    }
+                });
+            }
+
+            window.addEventListener('resize', () => { if (chart) chart.resize(); });
             renderLegend(); // Render the default active indicators
             checkAuthStatus();
-            
+
             // Explicit call at the end of DOMContentLoaded block
             loadData();
         });
