@@ -13,7 +13,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 client_id = '8PNBJSARNA-100'
 secret_key = 'WMLJO1VM7Z'
-redirect_uri = 'http://127.0.0.1:8000/login'
+redirect_uri = 'https://tradepro-live.onrender.com/login'
 
 import os
 
