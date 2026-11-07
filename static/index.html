@@ -666,6 +666,7 @@
                     <a href="#" onclick="toggleBuiltInIndicator('MACD'); return false;">MACD</a>
                     <a href="#" onclick="toggleBuiltInIndicator('ATR'); return false;">ATR</a>
                     <div style="border-top: 1px solid #363c4e; margin: 4px 0;"></div>
+                    <a href="#" onclick="toggleBuiltInIndicator('TDFI'); return false;">TDFI (Trend Momentum)</a>
                     <a href="#" onclick="toggleSwingBreak(); return false;">Swing Break (Custom)</a>
                 </div>
             </div>
@@ -1007,6 +1008,120 @@
                     type: 'line', attrs: { coordinates },
                     styles: { style: 'solid', color: isHigh ? '#ef5350' : '#26a69a', size: 2 }
                 }];
+            }
+        });
+
+        // Custom Indicator: Trend Direction Force Index (TDFI / Trend Momentum Predictor)
+        klinecharts.registerIndicator({
+            name: 'TDFI',
+            shortName: 'TDFI',
+            calcParams: [13, 13, 3, 0.05, -0.05],
+            precision: 4,
+            minValue: -1,
+            maxValue: 1,
+            figures: [
+                {
+                    key: 'signal',
+                    title: 'TDFI: ',
+                    type: 'line',
+                    styles: (data, indicator) => {
+                        const signal = data?.current?.indicatorData?.signal;
+                        const params = indicator?.calcParams || [13, 13, 3, 0.05, -0.05];
+                        const filterHigh = params[3] ?? 0.05;
+                        const filterLow = params[4] ?? -0.05;
+
+                        if (typeof signal === 'number' && !isNaN(signal)) {
+                            if (signal > filterHigh) {
+                                return { color: '#26A69A' }; // Bullish (Green)
+                            } else if (signal < filterLow) {
+                                return { color: '#EF5350' }; // Bearish (Red)
+                            }
+                        }
+                        return { color: '#787B86' };         // Neutral / Flat (Gray)
+                    }
+                }
+            ],
+            calc: (dataList, indicator) => {
+                const params = indicator.calcParams || [13, 13, 3, 0.05, -0.05];
+                const lookback = params[0] ?? 13;
+                const mmaLength = params[1] ?? 13;
+                const smmaLength = params.length >= 6 ? (params[2] ?? 13) : mmaLength;
+                const nLength = params.length >= 6 ? (params[3] ?? 3) : (params[2] ?? 3);
+
+                const len = dataList.length;
+                if (len === 0) return [];
+
+                // Helper: Exponential Moving Average
+                function calcEMA(values, period) {
+                    const ema = new Array(values.length);
+                    const k = 2 / (period + 1);
+                    let prev = 0;
+                    for (let i = 0; i < values.length; i++) {
+                        const val = values[i];
+                        if (i === 0) {
+                            prev = val;
+                        } else {
+                            prev = val * k + prev * (1 - k);
+                        }
+                        ema[i] = prev;
+                    }
+                    return ema;
+                }
+
+                // 1. price = close * 1000
+                const prices = dataList.map(candle => (candle.close ?? 0) * 1000);
+
+                // 2. mmi = ta.ema(price, mmaLength)
+                const mmi = calcEMA(prices, mmaLength);
+
+                // 3. smmi = ta.ema(mmi, smmaLength)
+                const smmi = calcEMA(mmi, smmaLength);
+
+                // 4. Impetus and TDF calculation
+                const tdf = new Array(len);
+                for (let i = 0; i < len; i++) {
+                    if (i === 0) {
+                        tdf[0] = 0;
+                        continue;
+                    }
+                    const impetmma = mmi[i] - mmi[i - 1];
+                    const impetsmma = smmi[i] - smmi[i - 1];
+                    const averImpet = (impetmma + impetsmma) / 2;
+                    const divma = Math.abs(mmi[i] - smmi[i]);
+
+                    // Preserving sign for negative vs positive impetus
+                    const impetPow = averImpet < 0
+                        ? -Math.pow(Math.abs(averImpet), nLength)
+                        : Math.pow(averImpet, nLength);
+
+                    tdf[i] = divma * impetPow;
+                }
+
+                // 5. highestTdf = ta.highest(math.abs(tdf), lookback * nLength)
+                const windowSize = Math.max(1, Math.round(lookback * nLength));
+                const result = new Array(len);
+
+                for (let i = 0; i < len; i++) {
+                    if (i === 0) {
+                        result[0] = { signal: 0 };
+                        continue;
+                    }
+
+                    const start = Math.max(0, i - windowSize + 1);
+                    let maxAbsTdf = 0;
+                    for (let j = start; j <= i; j++) {
+                        const absVal = Math.abs(tdf[j]);
+                        if (absVal > maxAbsTdf) {
+                            maxAbsTdf = absVal;
+                        }
+                    }
+
+                    // 6. signal = tdf / highestTdf
+                    const signal = maxAbsTdf > 0 ? (tdf[i] / maxAbsTdf) : 0;
+                    result[i] = { signal };
+                }
+
+                return result;
             }
         });
 
@@ -1432,6 +1547,8 @@
                     }
                 });
                 console.log('Chart initialized successfully.');
+                chart.createIndicator('TDFI', false, { id: 'pane_1' });
+                activeNativeIndicators['TDFI'] = { paneId: 'pane_1' };
             } catch (e) {
                 console.error("Script crashed during chart init:", e);
             }
