@@ -626,7 +626,7 @@
 
 <body>
     <!-- Top Navigation -->
-    <div class="top-bar">
+    <div class="top-bar top-header">
         <div class="top-left">
             <div class="logo">TradePro by Vandan</div>
             <select id="symbol-select" onchange="handleSymbolChange()">
@@ -673,6 +673,7 @@
             <button class="action-btn" onclick="openGoToModal()" title="Alt + G">📅 Go To</button>
             <button class="action-btn" onclick="resetChartZoom()">Reset Zoom</button>
             <button id="snap-btn" class="action-btn" title="Snapshot (Download Image)">📸 Snap</button>
+            <button id="tdfi-settings-btn" class="action-btn" onclick="openTDFISettingsModal()" title="TDFI Settings">⚙️</button>
         </div>
     </div>
 
@@ -757,6 +758,40 @@
             <div class="modal-actions">
                 <button class="btn-secondary" onclick="closeSettingsModal()">Cancel</button>
                 <button class="btn-primary" onclick="saveSettings()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TDFI Settings Modal -->
+    <div id="tdfi-settings-modal" class="modal">
+        <div class="modal-content" style="background-color: #131722; color: #ffffff; border: 1px solid #363c4e; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7); width: 340px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="margin: 0; color: #ffffff; font-size: 1.15rem;">TDFI Settings</h3>
+                <span style="cursor: pointer; font-size: 1.3rem; color: #787b86; line-height: 1;" onclick="closeTDFISettingsModal()">&times;</span>
+            </div>
+            <div class="setting-row" style="border-bottom: 1px solid #2a2e39;">
+                <span style="color: #d1d4dc;">Lookback</span>
+                <input type="number" id="tdfi-input-lookback" value="13" step="1">
+            </div>
+            <div class="setting-row" style="border-bottom: 1px solid #2a2e39;">
+                <span style="color: #d1d4dc;">MMA Length</span>
+                <input type="number" id="tdfi-input-mma" value="13" step="1">
+            </div>
+            <div class="setting-row" style="border-bottom: 1px solid #2a2e39;">
+                <span style="color: #d1d4dc;">N Length</span>
+                <input type="number" id="tdfi-input-nlength" value="3" step="1">
+            </div>
+            <div class="setting-row" style="border-bottom: 1px solid #2a2e39;">
+                <span style="color: #d1d4dc;">Filter High</span>
+                <input type="number" id="tdfi-input-filterhigh" value="0.05" step="0.01">
+            </div>
+            <div class="setting-row" style="border-bottom: 1px solid #2a2e39;">
+                <span style="color: #d1d4dc;">Filter Low</span>
+                <input type="number" id="tdfi-input-filterlow" value="-0.05" step="0.01">
+            </div>
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="closeTDFISettingsModal()">Cancel</button>
+                <button class="btn-primary" onclick="saveTDFISettings()">Save Settings</button>
             </div>
         </div>
     </div>
@@ -1021,6 +1056,20 @@
             maxValue: 1,
             figures: [
                 {
+                    key: 'aboveFilter',
+                    title: 'Above: ',
+                    type: 'bar',
+                    baseValue: 0,
+                    styles: () => ({ color: 'rgba(30, 58, 138, 0.6)' })
+                },
+                {
+                    key: 'belowFilter',
+                    title: 'Below: ',
+                    type: 'bar',
+                    baseValue: 0,
+                    styles: () => ({ color: 'rgba(30, 58, 138, 0.6)' })
+                },
+                {
                     key: 'signal',
                     title: 'TDFI: ',
                     type: 'line',
@@ -1047,6 +1096,8 @@
                 const mmaLength = params[1] ?? 13;
                 const smmaLength = params.length >= 6 ? (params[2] ?? 13) : mmaLength;
                 const nLength = params.length >= 6 ? (params[3] ?? 3) : (params[2] ?? 3);
+                const filterHigh = params.length >= 6 ? (params[4] ?? 0.05) : (params[3] ?? 0.05);
+                const filterLow = params.length >= 6 ? (params[5] ?? -0.05) : (params[4] ?? -0.05);
 
                 const len = dataList.length;
                 if (len === 0) return [];
@@ -1103,7 +1154,7 @@
 
                 for (let i = 0; i < len; i++) {
                     if (i === 0) {
-                        result[0] = { signal: 0 };
+                        result[0] = { signal: 0, aboveFilter: null, belowFilter: null };
                         continue;
                     }
 
@@ -1118,7 +1169,11 @@
 
                     // 6. signal = tdf / highestTdf
                     const signal = maxAbsTdf > 0 ? (tdf[i] / maxAbsTdf) : 0;
-                    result[i] = { signal };
+                    result[i] = {
+                        signal: signal,
+                        aboveFilter: signal > filterHigh ? filterHigh : null,
+                        belowFilter: signal < filterLow ? filterLow : null
+                    };
                 }
 
                 return result;
@@ -1202,6 +1257,36 @@
             }
             closeSettingsModal();
             renderLegend();
+        }
+
+        // TDFI Settings Modal Handlers
+        function openTDFISettingsModal() {
+            const modal = document.getElementById('tdfi-settings-modal');
+            if (modal) modal.style.display = 'block';
+        }
+
+        function closeTDFISettingsModal() {
+            const modal = document.getElementById('tdfi-settings-modal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function saveTDFISettings() {
+            const lookback = Number(document.getElementById('tdfi-input-lookback').value) || 13;
+            const mma = Number(document.getElementById('tdfi-input-mma').value) || 13;
+            const nLength = Number(document.getElementById('tdfi-input-nlength').value) || 3;
+            const filterHigh = parseFloat(document.getElementById('tdfi-input-filterhigh').value);
+            const filterLow = parseFloat(document.getElementById('tdfi-input-filterlow').value);
+
+            const highVal = isNaN(filterHigh) ? 0.05 : filterHigh;
+            const lowVal = isNaN(filterLow) ? -0.05 : filterLow;
+
+            if (chart) {
+                chart.overrideIndicator({
+                    name: 'TDFI',
+                    calcParams: [lookback, mma, nLength, highVal, lowVal]
+                });
+            }
+            closeTDFISettingsModal();
         }
 
         function drawSwingBreak() {
