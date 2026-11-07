@@ -673,7 +673,7 @@
             <button class="action-btn" onclick="openGoToModal()" title="Alt + G">📅 Go To</button>
             <button class="action-btn" onclick="resetChartZoom()">Reset Zoom</button>
             <button id="snap-btn" class="action-btn" title="Snapshot (Download Image)">📸 Snap</button>
-            <button id="tdfi-settings-btn" class="action-btn" onclick="openTDFISettingsModal()" title="TDFI Settings">⚙️</button>
+            <button id="tdfi-settings-btn" class="action-btn" onclick="openTDFIModal()" title="TDFI Settings">⚙️</button>
         </div>
     </div>
 
@@ -758,40 +758,6 @@
             <div class="modal-actions">
                 <button class="btn-secondary" onclick="closeSettingsModal()">Cancel</button>
                 <button class="btn-primary" onclick="saveSettings()">Save</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- TDFI Settings Modal -->
-    <div id="tdfi-settings-modal" class="modal">
-        <div class="modal-content" style="background-color: #131722; color: #ffffff; border: 1px solid #363c4e; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7); width: 340px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h3 style="margin: 0; color: #ffffff; font-size: 1.15rem;">TDFI Settings</h3>
-                <span style="cursor: pointer; font-size: 1.3rem; color: #787b86; line-height: 1;" onclick="closeTDFISettingsModal()">&times;</span>
-            </div>
-            <div class="setting-row" style="border-bottom: 1px solid #2a2e39;">
-                <span style="color: #d1d4dc;">Lookback</span>
-                <input type="number" id="tdfi-input-lookback" value="13" step="1">
-            </div>
-            <div class="setting-row" style="border-bottom: 1px solid #2a2e39;">
-                <span style="color: #d1d4dc;">MMA Length</span>
-                <input type="number" id="tdfi-input-mma" value="13" step="1">
-            </div>
-            <div class="setting-row" style="border-bottom: 1px solid #2a2e39;">
-                <span style="color: #d1d4dc;">N Length</span>
-                <input type="number" id="tdfi-input-nlength" value="3" step="1">
-            </div>
-            <div class="setting-row" style="border-bottom: 1px solid #2a2e39;">
-                <span style="color: #d1d4dc;">Filter High</span>
-                <input type="number" id="tdfi-input-filterhigh" value="0.05" step="0.01">
-            </div>
-            <div class="setting-row" style="border-bottom: 1px solid #2a2e39;">
-                <span style="color: #d1d4dc;">Filter Low</span>
-                <input type="number" id="tdfi-input-filterlow" value="-0.05" step="0.01">
-            </div>
-            <div class="modal-actions">
-                <button class="btn-secondary" onclick="closeTDFISettingsModal()">Cancel</button>
-                <button class="btn-primary" onclick="saveTDFISettings()">Save Settings</button>
             </div>
         </div>
     </div>
@@ -1046,140 +1012,6 @@
             }
         });
 
-        // Custom Indicator: Trend Direction Force Index (TDFI / Trend Momentum Predictor)
-        klinecharts.registerIndicator({
-            name: 'TDFI',
-            shortName: 'TDFI',
-            calcParams: [13, 13, 3, 0.05, -0.05],
-            precision: 4,
-            minValue: -1,
-            maxValue: 1,
-            figures: [
-                {
-                    key: 'aboveFilter',
-                    title: 'Above: ',
-                    type: 'bar',
-                    baseValue: 0,
-                    styles: () => ({ color: 'rgba(30, 58, 138, 0.6)' })
-                },
-                {
-                    key: 'belowFilter',
-                    title: 'Below: ',
-                    type: 'bar',
-                    baseValue: 0,
-                    styles: () => ({ color: 'rgba(30, 58, 138, 0.6)' })
-                },
-                {
-                    key: 'signal',
-                    title: 'TDFI: ',
-                    type: 'line',
-                    styles: (data, indicator) => {
-                        const signal = data?.current?.indicatorData?.signal;
-                        const params = indicator?.calcParams || [13, 13, 3, 0.05, -0.05];
-                        const filterHigh = params[3] ?? 0.05;
-                        const filterLow = params[4] ?? -0.05;
-
-                        if (typeof signal === 'number' && !isNaN(signal)) {
-                            if (signal > filterHigh) {
-                                return { color: '#26A69A' }; // Bullish (Green)
-                            } else if (signal < filterLow) {
-                                return { color: '#EF5350' }; // Bearish (Red)
-                            }
-                        }
-                        return { color: '#787B86' };         // Neutral / Flat (Gray)
-                    }
-                }
-            ],
-            calc: (dataList, indicator) => {
-                const params = indicator.calcParams || [13, 13, 3, 0.05, -0.05];
-                const lookback = params[0] ?? 13;
-                const mmaLength = params[1] ?? 13;
-                const smmaLength = params.length >= 6 ? (params[2] ?? 13) : mmaLength;
-                const nLength = params.length >= 6 ? (params[3] ?? 3) : (params[2] ?? 3);
-                const filterHigh = params.length >= 6 ? (params[4] ?? 0.05) : (params[3] ?? 0.05);
-                const filterLow = params.length >= 6 ? (params[5] ?? -0.05) : (params[4] ?? -0.05);
-
-                const len = dataList.length;
-                if (len === 0) return [];
-
-                // Helper: Exponential Moving Average
-                function calcEMA(values, period) {
-                    const ema = new Array(values.length);
-                    const k = 2 / (period + 1);
-                    let prev = 0;
-                    for (let i = 0; i < values.length; i++) {
-                        const val = values[i];
-                        if (i === 0) {
-                            prev = val;
-                        } else {
-                            prev = val * k + prev * (1 - k);
-                        }
-                        ema[i] = prev;
-                    }
-                    return ema;
-                }
-
-                // 1. price = close * 1000
-                const prices = dataList.map(candle => (candle.close ?? 0) * 1000);
-
-                // 2. mmi = ta.ema(price, mmaLength)
-                const mmi = calcEMA(prices, mmaLength);
-
-                // 3. smmi = ta.ema(mmi, smmaLength)
-                const smmi = calcEMA(mmi, smmaLength);
-
-                // 4. Impetus and TDF calculation
-                const tdf = new Array(len);
-                for (let i = 0; i < len; i++) {
-                    if (i === 0) {
-                        tdf[0] = 0;
-                        continue;
-                    }
-                    const impetmma = mmi[i] - mmi[i - 1];
-                    const impetsmma = smmi[i] - smmi[i - 1];
-                    const averImpet = (impetmma + impetsmma) / 2;
-                    const divma = Math.abs(mmi[i] - smmi[i]);
-
-                    // Preserving sign for negative vs positive impetus
-                    const impetPow = averImpet < 0
-                        ? -Math.pow(Math.abs(averImpet), nLength)
-                        : Math.pow(averImpet, nLength);
-
-                    tdf[i] = divma * impetPow;
-                }
-
-                // 5. highestTdf = ta.highest(math.abs(tdf), lookback * nLength)
-                const windowSize = Math.max(1, Math.round(lookback * nLength));
-                const result = new Array(len);
-
-                for (let i = 0; i < len; i++) {
-                    if (i === 0) {
-                        result[0] = { signal: 0, aboveFilter: null, belowFilter: null };
-                        continue;
-                    }
-
-                    const start = Math.max(0, i - windowSize + 1);
-                    let maxAbsTdf = 0;
-                    for (let j = start; j <= i; j++) {
-                        const absVal = Math.abs(tdf[j]);
-                        if (absVal > maxAbsTdf) {
-                            maxAbsTdf = absVal;
-                        }
-                    }
-
-                    // 6. signal = tdf / highestTdf
-                    const signal = maxAbsTdf > 0 ? (tdf[i] / maxAbsTdf) : 0;
-                    result[i] = {
-                        signal: signal,
-                        aboveFilter: signal > filterHigh ? filterHigh : null,
-                        belowFilter: signal < filterLow ? filterLow : null
-                    };
-                }
-
-                return result;
-            }
-        });
-
         let chart;
 
         // Legend Rendering
@@ -1259,35 +1091,103 @@
             renderLegend();
         }
 
-        // TDFI Settings Modal Handlers
-        function openTDFISettingsModal() {
-            const modal = document.getElementById('tdfi-settings-modal');
+        // TDFI Settings State & Handlers
+        const tdfiSettings = {
+            lookback: 13,
+            mmaLength: 13,
+            nLength: 3,
+            filterHigh: 0.05,
+            filterLow: -0.05,
+            showLine: false,
+            showBars: true,
+            lineColor: '#26A69A',
+            posBarColor: '#26A69A',
+            negBarColor: '#EF5350'
+        };
+
+        function openTDFIModal() {
+            document.getElementById('tdfi-lookback').value = tdfiSettings.lookback;
+            document.getElementById('tdfi-mma').value = tdfiSettings.mmaLength;
+            document.getElementById('tdfi-nlength').value = tdfiSettings.nLength;
+            document.getElementById('tdfi-filter-high').value = tdfiSettings.filterHigh;
+            document.getElementById('tdfi-filter-low').value = tdfiSettings.filterLow;
+            document.getElementById('tdfi-show-line').checked = tdfiSettings.showLine;
+            document.getElementById('tdfi-show-bars').checked = tdfiSettings.showBars;
+            document.getElementById('tdfi-line-color').value = tdfiSettings.lineColor;
+            document.getElementById('tdfi-pos-bar-color').value = tdfiSettings.posBarColor;
+            document.getElementById('tdfi-neg-bar-color').value = tdfiSettings.negBarColor;
+
+            const modal = document.getElementById('tdfi-modal');
             if (modal) modal.style.display = 'block';
         }
 
-        function closeTDFISettingsModal() {
-            const modal = document.getElementById('tdfi-settings-modal');
+        function closeTDFIModal() {
+            const modal = document.getElementById('tdfi-modal');
             if (modal) modal.style.display = 'none';
         }
 
-        function saveTDFISettings() {
-            const lookback = Number(document.getElementById('tdfi-input-lookback').value) || 13;
-            const mma = Number(document.getElementById('tdfi-input-mma').value) || 13;
-            const nLength = Number(document.getElementById('tdfi-input-nlength').value) || 3;
-            const filterHigh = parseFloat(document.getElementById('tdfi-input-filterhigh').value);
-            const filterLow = parseFloat(document.getElementById('tdfi-input-filterlow').value);
+        function applyTDFISettings() {
+            tdfiSettings.lookback = Number(document.getElementById('tdfi-lookback').value) || 13;
+            tdfiSettings.mmaLength = Number(document.getElementById('tdfi-mma').value) || 13;
+            tdfiSettings.nLength = Number(document.getElementById('tdfi-nlength').value) || 3;
 
-            const highVal = isNaN(filterHigh) ? 0.05 : filterHigh;
-            const lowVal = isNaN(filterLow) ? -0.05 : filterLow;
+            const fHigh = parseFloat(document.getElementById('tdfi-filter-high').value);
+            const fLow = parseFloat(document.getElementById('tdfi-filter-low').value);
+            tdfiSettings.filterHigh = isNaN(fHigh) ? 0.05 : fHigh;
+            tdfiSettings.filterLow = isNaN(fLow) ? -0.05 : fLow;
+
+            tdfiSettings.showLine = document.getElementById('tdfi-show-line').checked;
+            tdfiSettings.showBars = document.getElementById('tdfi-show-bars').checked;
+            tdfiSettings.lineColor = document.getElementById('tdfi-line-color').value;
+            tdfiSettings.posBarColor = document.getElementById('tdfi-pos-bar-color').value;
+            tdfiSettings.negBarColor = document.getElementById('tdfi-neg-bar-color').value;
 
             if (chart) {
                 chart.overrideIndicator({
                     name: 'TDFI',
-                    calcParams: [lookback, mma, nLength, highVal, lowVal]
-                });
+                    calcParams: [
+                        tdfiSettings.lookback,
+                        tdfiSettings.mmaLength,
+                        tdfiSettings.nLength,
+                        tdfiSettings.filterHigh,
+                        tdfiSettings.filterLow,
+                        tdfiSettings.showLine ? 1 : 0,
+                        tdfiSettings.showBars ? 1 : 0
+                    ],
+                    figures: [
+                        {
+                            key: 'aboveFilter',
+                            title: 'Above: ',
+                            type: 'bar',
+                            baseValue: 0,
+                            styles: () => ({ color: tdfiSettings.posBarColor })
+                        },
+                        {
+                            key: 'belowFilter',
+                            title: 'Below: ',
+                            type: 'bar',
+                            baseValue: 0,
+                            styles: () => ({ color: tdfiSettings.negBarColor })
+                        },
+                        {
+                            key: 'signal',
+                            title: 'TDFI: ',
+                            type: 'line',
+                            styles: () => ({ color: tdfiSettings.lineColor })
+                        }
+                    ]
+                }, 'pane_1');
             }
-            closeTDFISettingsModal();
+
+            closeTDFIModal();
         }
+
+        window.addEventListener('click', (e) => {
+            const modal = document.getElementById('tdfi-modal');
+            if (e.target === modal) {
+                closeTDFIModal();
+            }
+        });
 
         function drawSwingBreak() {
             chart.removeOverlay({ name: 'swingBreak' });
@@ -1627,13 +1527,164 @@
                                 paddingTop: 0,
                                 paddingBottom: 0,
                                 marginTop: 15
-                            }
+                            },
+                            icons: [
+                                {
+                                    id: 'setting',
+                                    position: 'left',
+                                    marginLeft: 8,
+                                    marginTop: 15,
+                                    marginRight: 0,
+                                    marginBottom: 0,
+                                    paddingLeft: 0,
+                                    paddingTop: 0,
+                                    paddingRight: 0,
+                                    paddingBottom: 0,
+                                    icon: '\u2699',
+                                    family: 'inherit',
+                                    size: 14,
+                                    color: '#787b86',
+                                    activeColor: '#26a69a',
+                                    backgroundColor: 'transparent',
+                                    activeBackgroundColor: 'transparent'
+                                }
+                            ]
                         }
                     }
                 });
                 console.log('Chart initialized successfully.');
+
+                // Register Custom Indicator: TDFI
+                klinecharts.registerIndicator({
+                    name: 'TDFI',
+                    shortName: 'TDFI',
+                    calcParams: [13, 13, 3, 0.05, -0.05, 0, 1],
+                    precision: 4,
+                    minValue: -1,
+                    maxValue: 1,
+                    figures: [
+                        {
+                            key: 'aboveFilter',
+                            title: 'Above: ',
+                            type: 'bar',
+                            baseValue: 0,
+                            styles: () => ({ color: tdfiSettings.posBarColor || '#26A69A' })
+                        },
+                        {
+                            key: 'belowFilter',
+                            title: 'Below: ',
+                            type: 'bar',
+                            baseValue: 0,
+                            styles: () => ({ color: tdfiSettings.negBarColor || '#EF5350' })
+                        },
+                        {
+                            key: 'signal',
+                            title: 'TDFI: ',
+                            type: 'line',
+                            styles: () => ({ color: tdfiSettings.lineColor || '#26A69A' })
+                        }
+                    ],
+                    calc: (dataList, indicator) => {
+                        const params = indicator.calcParams || [13, 13, 3, 0.05, -0.05, 0, 1];
+                        const lookback = params[0] ?? 13;
+                        const mmaLength = params[1] ?? 13;
+                        const smmaLength = mmaLength;
+                        const nLength = params[2] ?? 3;
+                        const filterHigh = params[3] ?? 0.05;
+                        const filterLow = params[4] ?? -0.05;
+                        const showLine = Boolean(params[5] ?? 0);
+                        const showBars = Boolean(params[6] ?? 1);
+
+                        const len = dataList.length;
+                        if (len === 0) return [];
+
+                        // Helper: Exponential Moving Average
+                        function calcEMA(values, period) {
+                            const ema = new Array(values.length);
+                            const k = 2 / (period + 1);
+                            let prev = 0;
+                            for (let i = 0; i < values.length; i++) {
+                                const val = values[i];
+                                if (i === 0) {
+                                    prev = val;
+                                } else {
+                                    prev = val * k + prev * (1 - k);
+                                }
+                                ema[i] = prev;
+                            }
+                            return ema;
+                        }
+
+                        // 1. price = close * 1000
+                        const prices = dataList.map(candle => (candle.close ?? 0) * 1000);
+
+                        // 2. mmi = ta.ema(price, mmaLength)
+                        const mmi = calcEMA(prices, mmaLength);
+
+                        // 3. smmi = ta.ema(mmi, smmaLength)
+                        const smmi = calcEMA(mmi, smmaLength);
+
+                        // 4. Impetus and TDF calculation
+                        const tdf = new Array(len);
+                        for (let i = 0; i < len; i++) {
+                            if (i === 0) {
+                                tdf[0] = 0;
+                                continue;
+                            }
+                            const impetmma = mmi[i] - mmi[i - 1];
+                            const impetsmma = smmi[i] - smmi[i - 1];
+                            const averImpet = (impetmma + impetsmma) / 2;
+                            const divma = Math.abs(mmi[i] - smmi[i]);
+
+                            const impetPow = averImpet < 0
+                                ? -Math.pow(Math.abs(averImpet), nLength)
+                                : Math.pow(averImpet, nLength);
+
+                            tdf[i] = divma * impetPow;
+                        }
+
+                        // 5. highestTdf = ta.highest(math.abs(tdf), lookback * nLength)
+                        const windowSize = Math.max(1, Math.round(lookback * nLength));
+                        const result = new Array(len);
+
+                        for (let i = 0; i < len; i++) {
+                            if (i === 0) {
+                                result[0] = { signal: null, aboveFilter: null, belowFilter: null };
+                                continue;
+                            }
+
+                            const start = Math.max(0, i - windowSize + 1);
+                            let maxAbsTdf = 0;
+                            for (let j = start; j <= i; j++) {
+                                const absVal = Math.abs(tdf[j]);
+                                if (absVal > maxAbsTdf) {
+                                    maxAbsTdf = absVal;
+                                }
+                            }
+
+                            // 6. signal = tdf / highestTdf
+                            const signal = maxAbsTdf > 0 ? (tdf[i] / maxAbsTdf) : 0;
+                            result[i] = {
+                                signal: showLine ? signal : null,
+                                aboveFilter: showBars ? (signal > filterHigh ? signal : null) : null,
+                                belowFilter: showBars ? (signal < filterLow ? signal : null) : null
+                            };
+                        }
+
+                        return result;
+                    }
+                });
+
                 chart.createIndicator('TDFI', false, { id: 'pane_1' });
                 activeNativeIndicators['TDFI'] = { paneId: 'pane_1' };
+
+                // Subscribe to tooltip icon click (native gear icon on TDFI pane)
+                chart.subscribeAction('onTooltipIconClick', (data) => {
+                    if (!data) return;
+                    if (data.indicatorName === 'TDFI' || data.paneId === 'pane_1' || data.iconId === 'setting') {
+                        openTDFIModal();
+                    }
+                });
             } catch (e) {
                 console.error("Script crashed during chart init:", e);
             }
@@ -1670,6 +1721,84 @@
             loadData();
         });
     </script>
+
+    <!-- TDFI Settings Modal -->
+    <div id="tdfi-modal" class="modal">
+        <div class="modal-content" style="background-color: #131722; color: #ffffff; border: 1px solid #363c4e; border-radius: 8px; width: 360px; padding: 20px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid #2a2e39; padding-bottom: 10px;">
+                <h3 style="margin: 0; color: #ffffff; font-size: 1.15rem; font-weight: 600;">TDFI Settings</h3>
+                <span style="cursor: pointer; font-size: 1.3rem; color: #787b86; line-height: 1;" onclick="closeTDFIModal()">&times;</span>
+            </div>
+
+            <!-- Parameters Section -->
+            <div style="margin-bottom: 15px;">
+                <div style="font-size: 0.8rem; text-transform: uppercase; color: #787b86; font-weight: 600; margin-bottom: 10px;">Inputs</div>
+                <div class="setting-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #1f293a; padding-bottom: 8px;">
+                    <span style="color: #d1d4dc; font-size: 0.9rem;">Lookback</span>
+                    <input type="number" id="tdfi-lookback" value="13" step="1" style="background: #1e222d; color: #fff; border: 1px solid #363c4e; padding: 5px 8px; border-radius: 4px; width: 80px; text-align: right;">
+                </div>
+                <div class="setting-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #1f293a; padding-bottom: 8px;">
+                    <span style="color: #d1d4dc; font-size: 0.9rem;">MMA Length</span>
+                    <input type="number" id="tdfi-mma" value="13" step="1" style="background: #1e222d; color: #fff; border: 1px solid #363c4e; padding: 5px 8px; border-radius: 4px; width: 80px; text-align: right;">
+                </div>
+                <div class="setting-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #1f293a; padding-bottom: 8px;">
+                    <span style="color: #d1d4dc; font-size: 0.9rem;">N Length</span>
+                    <input type="number" id="tdfi-nlength" value="3" step="1" style="background: #1e222d; color: #fff; border: 1px solid #363c4e; padding: 5px 8px; border-radius: 4px; width: 80px; text-align: right;">
+                </div>
+                <div class="setting-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #1f293a; padding-bottom: 8px;">
+                    <span style="color: #d1d4dc; font-size: 0.9rem;">Filter High</span>
+                    <input type="number" id="tdfi-filter-high" value="0.05" step="0.01" style="background: #1e222d; color: #fff; border: 1px solid #363c4e; padding: 5px 8px; border-radius: 4px; width: 80px; text-align: right;">
+                </div>
+                <div class="setting-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #1f293a; padding-bottom: 8px;">
+                    <span style="color: #d1d4dc; font-size: 0.9rem;">Filter Low</span>
+                    <input type="number" id="tdfi-filter-low" value="-0.05" step="0.01" style="background: #1e222d; color: #fff; border: 1px solid #363c4e; padding: 5px 8px; border-radius: 4px; width: 80px; text-align: right;">
+                </div>
+            </div>
+
+            <!-- Visibility / Style Section -->
+            <div style="margin-bottom: 15px;">
+                <div style="font-size: 0.8rem; text-transform: uppercase; color: #787b86; font-weight: 600; margin-bottom: 10px;">Visibility & Style</div>
+                
+                <!-- Show Line (Default Unchecked) & Line Color -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #1f293a; padding-bottom: 8px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: #d1d4dc; font-size: 0.9rem;">
+                        <input type="checkbox" id="tdfi-show-line" style="cursor: pointer; width: 16px; height: 16px;">
+                        <span>Show Line</span>
+                    </label>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span style="font-size: 0.8rem; color: #787b86;">Line Color</span>
+                        <input type="color" id="tdfi-line-color" value="#26A69A" style="border: none; width: 28px; height: 28px; border-radius: 4px; cursor: pointer; background: transparent;">
+                    </div>
+                </div>
+
+                <!-- Show Bars (Default Checked) -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #1f293a; padding-bottom: 8px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: #d1d4dc; font-size: 0.9rem;">
+                        <input type="checkbox" id="tdfi-show-bars" checked style="cursor: pointer; width: 16px; height: 16px;">
+                        <span>Show Bars</span>
+                    </label>
+                </div>
+
+                <!-- Positive Bar Color -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #1f293a; padding-bottom: 8px;">
+                    <span style="color: #d1d4dc; font-size: 0.9rem;">Positive Bar Color</span>
+                    <input type="color" id="tdfi-pos-bar-color" value="#26A69A" style="border: none; width: 28px; height: 28px; border-radius: 4px; cursor: pointer; background: transparent;">
+                </div>
+
+                <!-- Negative Bar Color -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #1f293a; padding-bottom: 8px;">
+                    <span style="color: #d1d4dc; font-size: 0.9rem;">Negative Bar Color</span>
+                    <input type="color" id="tdfi-neg-bar-color" value="#EF5350" style="border: none; width: 28px; height: 28px; border-radius: 4px; cursor: pointer; background: transparent;">
+                </div>
+            </div>
+
+            <!-- Buttons: Apply and Close -->
+            <div class="modal-actions" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px;">
+                <button type="button" class="btn-secondary" onclick="closeTDFIModal()" style="padding: 7px 15px; border-radius: 4px; cursor: pointer;">Close</button>
+                <button type="button" class="btn-primary" onclick="applyTDFISettings()" style="padding: 7px 18px; border-radius: 4px; cursor: pointer; background: #2962ff; color: white; border: none;">Apply</button>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>
