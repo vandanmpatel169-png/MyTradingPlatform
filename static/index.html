@@ -812,7 +812,7 @@
         function hideLoader() { document.getElementById('loading').style.display = 'none'; }
 
         // Tracking
-        const activeIndicators = { SwingBreak: true };
+        const activeIndicators = { SwingBreak: false };
         const visibilityState = { SwingBreak: true };
         const swingBreakParams = { leftBars: 2, rightBars: 5, extendBars: 10 };
 
@@ -1177,7 +1177,7 @@
                             styles: () => ({ color: tdfiSettings.lineColor })
                         }
                     ]
-                }, 'pane_1');
+                }, activeNativeIndicators['TDFI']?.paneId || 'pane_1');
             }
 
             closeTDFIModal();
@@ -1933,9 +1933,6 @@
 
                 chart.createIndicator('DUAL_EMA_ATR', true, { id: 'candle_pane' });
                 activeNativeIndicators['DUAL_EMA_ATR'] = { paneId: 'candle_pane' };
-
-                chart.createIndicator('TDFI', false, { id: 'pane_1' });
-                activeNativeIndicators['TDFI'] = { paneId: 'pane_1' };
 
                 // Subscribe to tooltip icon click (native gear icon on indicator panes)
                 chart.subscribeAction('onTooltipIconClick', (data) => {
