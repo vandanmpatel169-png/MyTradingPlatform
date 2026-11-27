@@ -667,6 +667,7 @@
                     <a href="#" onclick="toggleBuiltInIndicator('ATR'); return false;">ATR</a>
                     <div style="border-top: 1px solid #363c4e; margin: 4px 0;"></div>
                     <a href="#" onclick="toggleBuiltInIndicator('TDFI'); return false;">TDFI (Trend Momentum)</a>
+                    <a href="#" onclick="toggleDualEmaAtr(); return false;">Dual EMA ATR Filter</a>
                     <a href="#" onclick="toggleSwingBreak(); return false;">Swing Break (Custom)</a>
                 </div>
             </div>
@@ -1183,11 +1184,100 @@
         }
 
         window.addEventListener('click', (e) => {
-            const modal = document.getElementById('tdfi-modal');
-            if (e.target === modal) {
+            const tdfiModal = document.getElementById('tdfi-modal');
+            if (e.target === tdfiModal) {
                 closeTDFIModal();
             }
+            const dualEmaAtrModal = document.getElementById('dual-ema-atr-modal');
+            if (e.target === dualEmaAtrModal) {
+                closeDualEmaAtrModal();
+            }
         });
+
+        // Dual EMA ATR Filter Settings State & Handlers
+        const dualEmaAtrSettings = {
+            ema1Len: 9,
+            ema2Len: 15,
+            atrLen: 14,
+            atrMultPct: 25.0,
+            ema1ColorActive: '#00FF00',
+            ema2ColorActive: '#FFFF00',
+            inactiveColor: '#787B86'
+        };
+
+        function getDualEmaAtrFigures() {
+            return [
+                {
+                    key: 'ema1',
+                    title: 'EMA 1: ',
+                    type: 'line',
+                    styles: (data) => ({
+                        color: data?.current?.indicatorData?.isStrongSpread
+                            ? dualEmaAtrSettings.ema1ColorActive
+                            : dualEmaAtrSettings.inactiveColor
+                    })
+                },
+                {
+                    key: 'ema2',
+                    title: 'EMA 2: ',
+                    type: 'line',
+                    styles: (data) => ({
+                        color: data?.current?.indicatorData?.isStrongSpread
+                            ? dualEmaAtrSettings.ema2ColorActive
+                            : dualEmaAtrSettings.inactiveColor
+                    })
+                }
+            ];
+        }
+
+        function openDualEmaAtrModal() {
+            document.getElementById('dea-ema1-len').value = dualEmaAtrSettings.ema1Len;
+            document.getElementById('dea-ema2-len').value = dualEmaAtrSettings.ema2Len;
+            document.getElementById('dea-atr-len').value = dualEmaAtrSettings.atrLen;
+            document.getElementById('dea-atr-mult-pct').value = dualEmaAtrSettings.atrMultPct;
+            document.getElementById('dea-ema1-color').value = dualEmaAtrSettings.ema1ColorActive;
+            document.getElementById('dea-ema2-color').value = dualEmaAtrSettings.ema2ColorActive;
+            document.getElementById('dea-inactive-color').value = dualEmaAtrSettings.inactiveColor;
+
+            const modal = document.getElementById('dual-ema-atr-modal');
+            if (modal) modal.style.display = 'block';
+        }
+
+        function closeDualEmaAtrModal() {
+            const modal = document.getElementById('dual-ema-atr-modal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function applyDualEmaAtrSettings() {
+            const ema1Len = Math.max(1, parseInt(document.getElementById('dea-ema1-len').value, 10) || 9);
+            const ema2Len = Math.max(1, parseInt(document.getElementById('dea-ema2-len').value, 10) || 15);
+            const atrLen = Math.max(1, parseInt(document.getElementById('dea-atr-len').value, 10) || 14);
+            const rawMult = parseFloat(document.getElementById('dea-atr-mult-pct').value);
+            const atrMultPct = isNaN(rawMult) ? 25.0 : Math.max(0.0, rawMult);
+
+            dualEmaAtrSettings.ema1Len = ema1Len;
+            dualEmaAtrSettings.ema2Len = ema2Len;
+            dualEmaAtrSettings.atrLen = atrLen;
+            dualEmaAtrSettings.atrMultPct = atrMultPct;
+            dualEmaAtrSettings.ema1ColorActive = document.getElementById('dea-ema1-color').value;
+            dualEmaAtrSettings.ema2ColorActive = document.getElementById('dea-ema2-color').value;
+            dualEmaAtrSettings.inactiveColor = document.getElementById('dea-inactive-color').value;
+
+            if (chart && activeNativeIndicators['DUAL_EMA_ATR']) {
+                chart.overrideIndicator({
+                    name: 'DUAL_EMA_ATR',
+                    calcParams: [
+                        dualEmaAtrSettings.ema1Len,
+                        dualEmaAtrSettings.ema2Len,
+                        dualEmaAtrSettings.atrLen,
+                        dualEmaAtrSettings.atrMultPct
+                    ],
+                    figures: getDualEmaAtrFigures()
+                }, 'candle_pane');
+            }
+
+            closeDualEmaAtrModal();
+        }
 
         function drawSwingBreak() {
             chart.removeOverlay({ name: 'swingBreak' });
@@ -1236,6 +1326,26 @@
         }
 
         const activeNativeIndicators = {};
+        function toggleDualEmaAtr() {
+            if (!chart) return;
+            if (activeNativeIndicators['DUAL_EMA_ATR']) {
+                chart.removeIndicator('candle_pane', 'DUAL_EMA_ATR');
+                activeNativeIndicators['DUAL_EMA_ATR'] = false;
+            } else {
+                chart.createIndicator({
+                    name: 'DUAL_EMA_ATR',
+                    calcParams: [
+                        dualEmaAtrSettings.ema1Len,
+                        dualEmaAtrSettings.ema2Len,
+                        dualEmaAtrSettings.atrLen,
+                        dualEmaAtrSettings.atrMultPct
+                    ],
+                    figures: getDualEmaAtrFigures()
+                }, true, { id: 'candle_pane' });
+                activeNativeIndicators['DUAL_EMA_ATR'] = { paneId: 'candle_pane' };
+            }
+        }
+
         function toggleBuiltInIndicator(name) {
             if (activeNativeIndicators[name]) {
                 chart.removeIndicator(activeNativeIndicators[name].paneId, name);
@@ -1675,13 +1785,164 @@
                     }
                 });
 
+                // Register Custom Indicator: Dual EMA ATR Filter
+                klinecharts.registerIndicator({
+                    name: 'DUAL_EMA_ATR',
+                    shortName: 'Dual EMA ATR',
+                    series: 'price',
+                    calcParams: [9, 15, 14, 25.0],
+                    precision: 2,
+                    figures: getDualEmaAtrFigures(),
+                    calc: (dataList, indicator) => {
+                        const params = indicator.calcParams || [9, 15, 14, 25.0];
+                        const ema1Len = Math.max(1, Math.floor(params[0] ?? 9));
+                        const ema2Len = Math.max(1, Math.floor(params[1] ?? 15));
+                        const atrLen = Math.max(1, Math.floor(params[2] ?? 14));
+                        const atrMultPct = Math.max(0.0, params[3] ?? 25.0);
+
+                        const len = dataList.length;
+                        if (len === 0) return [];
+
+                        function calcEMA(values, period) {
+                            const out = new Array(values.length).fill(null);
+                            if (values.length < period) return out;
+                            let sum = 0;
+                            for (let i = 0; i < period; i++) {
+                                sum += values[i];
+                            }
+                            let prev = sum / period;
+                            out[period - 1] = prev;
+                            const k = 2 / (period + 1);
+                            for (let i = period; i < values.length; i++) {
+                                prev = values[i] * k + prev * (1 - k);
+                                out[i] = prev;
+                            }
+                            return out;
+                        }
+
+                        function calcATR(candles, period) {
+                            const out = new Array(candles.length).fill(null);
+                            if (candles.length < period) return out;
+                            const tr = new Array(candles.length);
+                            for (let i = 0; i < candles.length; i++) {
+                                const h = candles[i].high ?? 0;
+                                const l = candles[i].low ?? 0;
+                                if (i === 0) {
+                                    tr[i] = h - l;
+                                } else {
+                                    const pc = candles[i - 1].close ?? 0;
+                                    tr[i] = Math.max(h - l, Math.abs(h - pc), Math.abs(l - pc));
+                                }
+                            }
+                            let sum = 0;
+                            for (let i = 0; i < period; i++) {
+                                sum += tr[i];
+                            }
+                            let rma = sum / period;
+                            out[period - 1] = rma;
+                            for (let i = period; i < candles.length; i++) {
+                                rma = (rma * (period - 1) + tr[i]) / period;
+                                out[i] = rma;
+                            }
+                            return out;
+                        }
+
+                        const closes = dataList.map(c => c.close ?? 0);
+                        const ema1 = calcEMA(closes, ema1Len);
+                        const ema2 = calcEMA(closes, ema2Len);
+                        const atr = calcATR(dataList, atrLen);
+
+                        const result = new Array(len);
+                        for (let i = 0; i < len; i++) {
+                            const e1 = ema1[i];
+                            const e2 = ema2[i];
+                            const a = atr[i];
+                            const hasEmas = e1 != null && e2 != null;
+                            const threshold = a != null ? a * (atrMultPct / 100.0) : null;
+                            const isStrongSpread = Boolean(
+                                hasEmas &&
+                                a != null &&
+                                a > 0 &&
+                                Math.abs(e1 - e2) > threshold
+                            );
+                            result[i] = {
+                                ema1: e1,
+                                ema2: e2,
+                                isStrongSpread
+                            };
+                        }
+                        return result;
+                    },
+                    draw: ({ ctx, indicator, visibleRange, xAxis, yAxis }) => {
+                        if (!indicator.visible) return true;
+                        const resultList = indicator.result;
+                        if (!resultList || resultList.length < 2) return true;
+
+                        const startIdx = Math.max(1, visibleRange.from);
+                        const endIdx = Math.min(resultList.length - 1, visibleRange.to);
+
+                        function drawColoredLine(key, activeColor, inactiveColor) {
+                            let currentColor = null;
+                            let hasPath = false;
+                            for (let i = startIdx; i <= endIdx; i++) {
+                                const prev = resultList[i - 1];
+                                const curr = resultList[i];
+                                if (!prev || !curr || prev[key] == null || curr[key] == null) {
+                                    if (hasPath) {
+                                        ctx.stroke();
+                                        hasPath = false;
+                                        currentColor = null;
+                                    }
+                                    continue;
+                                }
+                                const segColor = curr.isStrongSpread ? activeColor : inactiveColor;
+                                const x1 = xAxis.convertToPixel(i - 1);
+                                const y1 = yAxis.convertToPixel(prev[key]);
+                                const x2 = xAxis.convertToPixel(i);
+                                const y2 = yAxis.convertToPixel(curr[key]);
+
+                                if (segColor !== currentColor || !hasPath) {
+                                    if (hasPath) {
+                                        ctx.stroke();
+                                    }
+                                    ctx.beginPath();
+                                    ctx.strokeStyle = segColor;
+                                    ctx.moveTo(x1, y1);
+                                    ctx.lineTo(x2, y2);
+                                    currentColor = segColor;
+                                    hasPath = true;
+                                } else {
+                                    ctx.lineTo(x2, y2);
+                                }
+                            }
+                            if (hasPath) {
+                                ctx.stroke();
+                            }
+                        }
+
+                        ctx.save();
+                        ctx.lineWidth = 1;
+                        ctx.lineJoin = 'round';
+                        ctx.lineCap = 'round';
+                        drawColoredLine('ema1', dualEmaAtrSettings.ema1ColorActive, dualEmaAtrSettings.inactiveColor);
+                        drawColoredLine('ema2', dualEmaAtrSettings.ema2ColorActive, dualEmaAtrSettings.inactiveColor);
+                        ctx.restore();
+                        return true;
+                    }
+                });
+
+                chart.createIndicator('DUAL_EMA_ATR', true, { id: 'candle_pane' });
+                activeNativeIndicators['DUAL_EMA_ATR'] = { paneId: 'candle_pane' };
+
                 chart.createIndicator('TDFI', false, { id: 'pane_1' });
                 activeNativeIndicators['TDFI'] = { paneId: 'pane_1' };
 
-                // Subscribe to tooltip icon click (native gear icon on TDFI pane)
+                // Subscribe to tooltip icon click (native gear icon on indicator panes)
                 chart.subscribeAction('onTooltipIconClick', (data) => {
                     if (!data) return;
-                    if (data.indicatorName === 'TDFI' || data.paneId === 'pane_1' || data.iconId === 'setting') {
+                    if (data.indicatorName === 'DUAL_EMA_ATR') {
+                        openDualEmaAtrModal();
+                    } else if (data.indicatorName === 'TDFI' || (data.paneId === 'pane_1' && data.iconId === 'setting')) {
                         openTDFIModal();
                     }
                 });
@@ -1796,6 +2057,57 @@
             <div class="modal-actions" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px;">
                 <button type="button" class="btn-secondary" onclick="closeTDFIModal()" style="padding: 7px 15px; border-radius: 4px; cursor: pointer;">Close</button>
                 <button type="button" class="btn-primary" onclick="applyTDFISettings()" style="padding: 7px 18px; border-radius: 4px; cursor: pointer; background: #2962ff; color: white; border: none;">Apply</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dual EMA ATR Filter Settings Modal -->
+    <div id="dual-ema-atr-modal" class="modal">
+        <div class="modal-content" style="background-color: #131722; color: #ffffff; border: 1px solid #363c4e; border-radius: 8px; width: 360px; padding: 20px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid #2a2e39; padding-bottom: 10px;">
+                <h3 style="margin: 0; color: #ffffff; font-size: 1.15rem; font-weight: 600;">Dual EMA ATR Filter Settings</h3>
+                <span style="cursor: pointer; font-size: 1.3rem; color: #787b86; line-height: 1;" onclick="closeDualEmaAtrModal()">&times;</span>
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <div style="font-size: 0.8rem; text-transform: uppercase; color: #787b86; font-weight: 600; margin-bottom: 10px;">Inputs</div>
+                <div class="setting-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #1f293a; padding-bottom: 8px;">
+                    <span style="color: #d1d4dc; font-size: 0.9rem;">EMA 1 Length</span>
+                    <input type="number" id="dea-ema1-len" value="9" min="1" step="1" style="background: #1e222d; color: #fff; border: 1px solid #363c4e; padding: 5px 8px; border-radius: 4px; width: 80px; text-align: right;">
+                </div>
+                <div class="setting-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #1f293a; padding-bottom: 8px;">
+                    <span style="color: #d1d4dc; font-size: 0.9rem;">EMA 2 Length</span>
+                    <input type="number" id="dea-ema2-len" value="15" min="1" step="1" style="background: #1e222d; color: #fff; border: 1px solid #363c4e; padding: 5px 8px; border-radius: 4px; width: 80px; text-align: right;">
+                </div>
+                <div class="setting-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #1f293a; padding-bottom: 8px;">
+                    <span style="color: #d1d4dc; font-size: 0.9rem;">ATR Length</span>
+                    <input type="number" id="dea-atr-len" value="14" min="1" step="1" style="background: #1e222d; color: #fff; border: 1px solid #363c4e; padding: 5px 8px; border-radius: 4px; width: 80px; text-align: right;">
+                </div>
+                <div class="setting-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #1f293a; padding-bottom: 8px;">
+                    <span style="color: #d1d4dc; font-size: 0.9rem;">Min EMA Diff (% of ATR)</span>
+                    <input type="number" id="dea-atr-mult-pct" value="25.0" min="0" step="1.0" style="background: #1e222d; color: #fff; border: 1px solid #363c4e; padding: 5px 8px; border-radius: 4px; width: 80px; text-align: right;">
+                </div>
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <div style="font-size: 0.8rem; text-transform: uppercase; color: #787b86; font-weight: 600; margin-bottom: 10px;">Style</div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #1f293a; padding-bottom: 8px;">
+                    <span style="color: #d1d4dc; font-size: 0.9rem;">EMA 1 Active Color</span>
+                    <input type="color" id="dea-ema1-color" value="#00FF00" style="border: none; width: 28px; height: 28px; border-radius: 4px; cursor: pointer; background: transparent;">
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #1f293a; padding-bottom: 8px;">
+                    <span style="color: #d1d4dc; font-size: 0.9rem;">EMA 2 Active Color</span>
+                    <input type="color" id="dea-ema2-color" value="#FFFF00" style="border: none; width: 28px; height: 28px; border-radius: 4px; cursor: pointer; background: transparent;">
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #1f293a; padding-bottom: 8px;">
+                    <span style="color: #d1d4dc; font-size: 0.9rem;">Inactive / Low Diff Color</span>
+                    <input type="color" id="dea-inactive-color" value="#787B86" style="border: none; width: 28px; height: 28px; border-radius: 4px; cursor: pointer; background: transparent;">
+                </div>
+            </div>
+
+            <div class="modal-actions" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px;">
+                <button type="button" class="btn-secondary" onclick="closeDualEmaAtrModal()" style="padding: 7px 15px; border-radius: 4px; cursor: pointer;">Close</button>
+                <button type="button" class="btn-primary" onclick="applyDualEmaAtrSettings()" style="padding: 7px 18px; border-radius: 4px; cursor: pointer; background: #2962ff; color: white; border: none;">Apply</button>
             </div>
         </div>
     </div>
