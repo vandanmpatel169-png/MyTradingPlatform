@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>TradePro by Vandan</title>
     <!-- KLineChart CDN -->
     <script src="https://cdn.jsdelivr.net/npm/klinecharts/dist/klinecharts.min.js"></script>
@@ -12,17 +12,24 @@
             box-sizing: border-box;
         }
 
+        html,
         body {
             margin: 0;
             padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
             background-color: #131722;
             color: #d1d4dc;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            overflow: hidden;
             display: flex;
             flex-direction: column;
             height: 100vh;
-            width: 100vw;
+            height: 100dvh;
+            height: var(--app-height, 100dvh);
         }
 
         .top-bar {
@@ -174,9 +181,9 @@
 
         .main-content {
             display: flex;
-            flex: 1;
-            width: 100vw;
-            height: calc(100vh - 40px);
+            flex: 1 1 auto;
+            min-height: 0;
+            width: 100%;
             overflow: hidden;
         }
 
@@ -256,7 +263,9 @@
         }
 
         .chart-wrapper {
-            flex: 1;
+            flex: 1 1 auto;
+            min-width: 0;
+            min-height: 0;
             height: 100%;
             position: relative;
             background: #131722;
@@ -266,6 +275,7 @@
         #chart {
             width: 100%;
             height: 100%;
+            touch-action: none;
         }
 
         /* Chart Legend (Floating Overlay Badge) */
@@ -1373,8 +1383,18 @@
             }
         }
         function resetChartZoom() {
+            if (!chart) return;
             if (chart.setOffsetRightDistance) chart.setOffsetRightDistance(0);
             if (chart.setBarSpace) chart.setBarSpace(10);
+            if (chart.getAllDrawPanes) {
+                chart.getAllDrawPanes().forEach(pane => {
+                    const axis = pane.getAxisComponent && pane.getAxisComponent();
+                    if (axis && axis.setAutoCalcTickFlag) {
+                        axis.setAutoCalcTickFlag(true);
+                    }
+                });
+                chart.adjustPaneViewport(false, true, true, true);
+            }
         }
 
         function handleSymbolChange() { currentSymbol = document.getElementById('symbol-select').value; loadData(); }
@@ -1603,9 +1623,185 @@
             hideLoader();
         }
 
+        function syncViewportLayout() {
+            const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+            document.documentElement.style.setProperty('--app-height', `${Math.floor(h)}px`);
+            if (chart) {
+                chart.resize();
+            }
+        }
+
+        function setupYAxisScaling(chartInstance, chartEl) {
+            if (!chartInstance || !chartEl) return;
+
+            function findHitYAxisPane(clientX, clientY) {
+                const panes = chartInstance.getAllDrawPanes
+                    ? chartInstance.getAllDrawPanes()
+                    : [chartInstance.getDrawPaneById && chartInstance.getDrawPaneById('candle_pane')].filter(Boolean);
+
+                for (let i = 0; i < panes.length; i++) {
+                    const pane = panes[i];
+                    const yWidget = pane.getYAxisWidget && pane.getYAxisWidget();
+                    const dom = yWidget && yWidget.getContainer && yWidget.getContainer();
+                    if (!dom) continue;
+                    const rect = dom.getBoundingClientRect();
+                    if (clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom) {
+                        const axis = pane.getAxisComponent && pane.getAxisComponent();
+                        if (axis) {
+                            return { pane, axis, rect };
+                        }
+                    }
+                }
+                return null;
+            }
+
+            function scaleAxisByFactor(axis, baseExtremum, factor) {
+                if (!axis || !baseExtremum || !isFinite(baseExtremum.range) || baseExtremum.range <= 0) return;
+                const newRange = Math.max(1e-8, baseExtremum.range * factor);
+                const center = (baseExtremum.min + baseExtremum.max) / 2;
+                const newMin = center - newRange / 2;
+                const newMax = center + newRange / 2;
+                const realMin = axis.convertToRealValue ? axis.convertToRealValue(newMin) : newMin;
+                const realMax = axis.convertToRealValue ? axis.convertToRealValue(newMax) : newMax;
+                axis.setExtremum({
+                    min: newMin,
+                    max: newMax,
+                    range: newRange,
+                    realMin: realMin,
+                    realMax: realMax,
+                    realRange: realMax - realMin
+                });
+                chartInstance.adjustPaneViewport(false, true, true, true);
+            }
+
+            function resetAxisAutoScale(axis) {
+                if (!axis || !axis.setAutoCalcTickFlag) return;
+                if (!axis.getAutoCalcTickFlag || !axis.getAutoCalcTickFlag()) {
+                    axis.setAutoCalcTickFlag(true);
+                    chartInstance.adjustPaneViewport(false, true, true, true);
+                }
+            }
+
+            let mouseDrag = null;
+            let touchDrag = null;
+            let lastTapTime = 0;
+            let lastTapY = 0;
+
+            chartEl.addEventListener('mousedown', (e) => {
+                if (e.button !== 0) return;
+                const hit = findHitYAxisPane(e.clientX, e.clientY);
+                if (!hit) return;
+                if (hit.axis.getScrollZoomEnabled && !hit.axis.getScrollZoomEnabled()) return;
+                const ext = hit.axis.getExtremum && hit.axis.getExtremum();
+                if (!ext || !isFinite(ext.range) || ext.range <= 0) return;
+
+                e.stopPropagation();
+                e.preventDefault();
+                mouseDrag = {
+                    axis: hit.axis,
+                    startY: e.clientY,
+                    startExtremum: { ...ext },
+                    paneHeight: Math.max(80, hit.rect.height)
+                };
+            }, true);
+
+            window.addEventListener('mousemove', (e) => {
+                if (!mouseDrag) return;
+                const dy = e.clientY - mouseDrag.startY;
+                const factor = Math.exp((dy / mouseDrag.paneHeight) * 3.0);
+                scaleAxisByFactor(mouseDrag.axis, mouseDrag.startExtremum, factor);
+            });
+
+            window.addEventListener('mouseup', () => {
+                mouseDrag = null;
+            });
+            window.addEventListener('blur', () => {
+                mouseDrag = null;
+                touchDrag = null;
+            });
+
+            chartEl.addEventListener('dblclick', (e) => {
+                const hit = findHitYAxisPane(e.clientX, e.clientY);
+                if (!hit) return;
+                e.stopPropagation();
+                e.preventDefault();
+                resetAxisAutoScale(hit.axis);
+            }, true);
+
+            chartEl.addEventListener('wheel', (e) => {
+                const hit = findHitYAxisPane(e.clientX, e.clientY);
+                if (!hit) return;
+                if (hit.axis.getScrollZoomEnabled && !hit.axis.getScrollZoomEnabled()) return;
+                const ext = hit.axis.getExtremum && hit.axis.getExtremum();
+                if (!ext || !isFinite(ext.range) || ext.range <= 0) return;
+
+                e.stopPropagation();
+                e.preventDefault();
+                const factor = Math.exp((e.deltaY / Math.max(80, hit.rect.height)) * 1.5);
+                scaleAxisByFactor(hit.axis, ext, factor);
+            }, { passive: false, capture: true });
+
+            chartEl.addEventListener('touchstart', (e) => {
+                if (e.touches.length !== 1) {
+                    touchDrag = null;
+                    return;
+                }
+                const t = e.touches[0];
+                const hit = findHitYAxisPane(t.clientX, t.clientY);
+                if (!hit) return;
+                if (hit.axis.getScrollZoomEnabled && !hit.axis.getScrollZoomEnabled()) return;
+                const ext = hit.axis.getExtremum && hit.axis.getExtremum();
+                if (!ext || !isFinite(ext.range) || ext.range <= 0) return;
+
+                e.stopPropagation();
+                e.preventDefault();
+
+                const now = Date.now();
+                if (now - lastTapTime < 320 && Math.abs(t.clientY - lastTapY) < 25) {
+                    resetAxisAutoScale(hit.axis);
+                    lastTapTime = 0;
+                    touchDrag = null;
+                    return;
+                }
+                lastTapTime = now;
+                lastTapY = t.clientY;
+
+                touchDrag = {
+                    touchId: t.identifier,
+                    axis: hit.axis,
+                    startY: t.clientY,
+                    startExtremum: { ...ext },
+                    paneHeight: Math.max(80, hit.rect.height)
+                };
+            }, { passive: false, capture: true });
+
+            chartEl.addEventListener('touchmove', (e) => {
+                if (!touchDrag) return;
+                let touch = null;
+                for (let i = 0; i < e.touches.length; i++) {
+                    if (e.touches[i].identifier === touchDrag.touchId) {
+                        touch = e.touches[i];
+                        break;
+                    }
+                }
+                if (!touch) return;
+
+                e.stopPropagation();
+                e.preventDefault();
+                const dy = touch.clientY - touchDrag.startY;
+                const factor = Math.exp((dy / touchDrag.paneHeight) * 3.0);
+                scaleAxisByFactor(touchDrag.axis, touchDrag.startExtremum, factor);
+            }, { passive: false, capture: true });
+
+            const endTouch = () => { touchDrag = null; };
+            chartEl.addEventListener('touchend', endTouch, { capture: true });
+            chartEl.addEventListener('touchcancel', endTouch, { capture: true });
+        }
+
         // Init Data
         document.addEventListener('DOMContentLoaded', () => {
             console.log('DOM Content Loaded, setting up...');
+            syncViewportLayout();
 
             try {
                 console.log('Initializing chart...');
@@ -1971,7 +2167,23 @@
                 });
             }
 
-            window.addEventListener('resize', () => { if (chart) chart.resize(); });
+            setupYAxisScaling(chart, document.getElementById('chart'));
+
+            window.addEventListener('resize', syncViewportLayout);
+            window.addEventListener('orientationchange', () => {
+                syncViewportLayout();
+                setTimeout(syncViewportLayout, 150);
+                setTimeout(syncViewportLayout, 350);
+            });
+            if (window.visualViewport) {
+                window.visualViewport.addEventListener('resize', syncViewportLayout);
+            }
+            if (typeof ResizeObserver !== 'undefined') {
+                const ro = new ResizeObserver(() => {
+                    if (chart) chart.resize();
+                });
+                ro.observe(document.getElementById('chart'));
+            }
             renderLegend(); // Render the default active indicators
             checkAuthStatus();
 
